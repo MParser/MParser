@@ -1,0 +1,116 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Center",
+      "presentation": {
+        "group": "Debug",
+        "order": 1
+      },
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/Center"
+    },
+    {
+      "name": "Gateway",
+      "type": "debugpy",
+      "request": "launch",
+      "presentation": {
+        "group": "Debug",
+        "order": 1
+      },
+      "program": "run.py",
+      "console": "integratedTerminal",
+      "args": ["-B"],
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "NUL"
+      },
+      "python": "${workspaceFolder}/venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}/Gateway"
+    },
+    {
+      "name": "Scanner",
+      "type": "debugpy",
+      "request": "launch",
+      "presentation": {
+        "group": "Debug",
+        "order": 1
+      },
+      "program": "run.py",
+      "console": "integratedTerminal",
+      "args": ["-B"],
+      "env": {
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "PYTHONPYCACHEPREFIX": "NUL"
+      },
+      "python": "${workspaceFolder}/venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}/Scanner"
+    },
+    {
+      "name": "Parser",
+      "type": "debugpy",
+      "request": "launch",
+      "presentation": {
+        "group": "Debug",
+        "order": 1
+      },
+      "program": "run.py",
+      "console": "integratedTerminal",
+      "args": ["-B"],
+      "env": {
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "PYTHONPYCACHEPREFIX": "NUL"
+      },
+      "python": "${workspaceFolder}/venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}/Parser"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "WebAdmin",
+      "presentation": {
+        "group": "Debug",
+        "order": 1
+      },
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/WebAdmin"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Prisma Sync",
+      "presentation": {
+        "group": "Build",
+        "order": 0
+      },
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["sync"],
+      "console": "internalConsole",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/Center"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Build",
+      "presentation": {
+        "group": "Build",
+        "order": 0
+      },
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["build"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/Center"
+    },
+  ]
+  
+}

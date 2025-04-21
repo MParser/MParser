@@ -1,0 +1,2159 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MParser Center",
+    "version": "1.0.0",
+    "description": "MParser Center API 文档"
+  },
+  "components": {
+    "schemas": {
+      "Gateway": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gateway ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gateway名称"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态(0-离线,1-在线)"
+          },
+          "switch": {
+            "type": "integer",
+            "description": "开关(0-关闭,1-开启)"
+          }
+        }
+      },
+      "NDS": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "NDS ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "NDS名称"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态(0-离线,1-在线)"
+          },
+          "switch": {
+            "type": "integer",
+            "description": "开关(0-关闭,1-开启)"
+          }
+        }
+      },
+      "NDSFile": {
+        "type": "object",
+        "required": [
+          "ndsId",
+          "file_path",
+          "file_time",
+          "data_type",
+          "sub_file_name",
+          "enodebid"
+        ],
+        "properties": {
+          "file_hash": {
+            "type": "string",
+            "description": "文件哈希值（由系统自动生成）"
+          },
+          "ndsId": {
+            "type": "integer",
+            "description": "NDS ID"
+          },
+          "file_path": {
+            "type": "string",
+            "description": "文件路径"
+          },
+          "file_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "文件时间"
+          },
+          "data_type": {
+            "type": "string",
+            "description": "数据类型"
+          },
+          "sub_file_name": {
+            "type": "string",
+            "description": "子文件名"
+          },
+          "header_offset": {
+            "type": "integer",
+            "description": "头部偏移量",
+            "default": 0
+          },
+          "compress_size": {
+            "type": "integer",
+            "description": "压缩大小",
+            "default": 0
+          },
+          "file_size": {
+            "type": "integer",
+            "description": "文件大小",
+            "default": 0
+          },
+          "flag_bits": {
+            "type": "integer",
+            "description": "标志位",
+            "default": 0
+          },
+          "enodebid": {
+            "type": "string",
+            "description": "基站ID"
+          },
+          "parsed": {
+            "type": "integer",
+            "description": "解析状态",
+            "default": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间"
+          }
+        }
+      },
+      "Parser": {
+        "type": "object",
+        "required": [
+          "id",
+          "host",
+          "port"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Parser ID"
+          },
+          "gatewayId": {
+            "type": "string",
+            "description": "关联的网关ID（可选）"
+          },
+          "name": {
+            "type": "string",
+            "description": "Parser名称"
+          },
+          "host": {
+            "type": "string",
+            "description": "主机地址（IP地址）"
+          },
+          "port": {
+            "type": "integer",
+            "description": "端口号",
+            "default": 10002
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态(0-离线,1-在线)",
+            "default": 0
+          },
+          "switch": {
+            "type": "integer",
+            "description": "开关(0-关闭,1-开启)",
+            "default": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间"
+          },
+          "gateway": {
+            "$ref": "#/components/schemas/Gateway"
+          }
+        }
+      },
+      "Scanner": {
+        "type": "object",
+        "required": [
+          "id",
+          "host",
+          "port"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Scanner ID"
+          },
+          "gatewayId": {
+            "type": "string",
+            "description": "关联的网关ID（可选）"
+          },
+          "name": {
+            "type": "string",
+            "description": "Scanner名称"
+          },
+          "host": {
+            "type": "string",
+            "description": "主机地址（IP地址）"
+          },
+          "port": {
+            "type": "integer",
+            "description": "端口号",
+            "default": 10002
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态(0-离线,1-在线)",
+            "default": 0
+          },
+          "switch": {
+            "type": "integer",
+            "description": "开关(0-关闭,1-开启)",
+            "default": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间"
+          },
+          "gateway": {
+            "$ref": "#/components/schemas/Gateway"
+          },
+          "ndsLinks": {
+            "type": "array",
+            "description": "关联的NDS列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nds": {
+                  "$ref": "#/components/schemas/NDS"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "required": [
+          "name",
+          "data_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "任务ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "任务名称"
+          },
+          "data_type": {
+            "type": "string",
+            "description": "任务类型（MRO/MDT）"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态（0未处理 1处理完成）",
+            "default": 0
+          },
+          "remark": {
+            "type": "string",
+            "description": "任务备注"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间"
+          }
+        }
+      },
+      "EnbTask": {
+        "type": "object",
+        "required": [
+          "enodebid",
+          "data_type",
+          "start_time",
+          "end_time"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "基站任务ID"
+          },
+          "taskId": {
+            "type": "integer",
+            "description": "所属任务ID"
+          },
+          "enodebid": {
+            "type": "string",
+            "description": "基站ID"
+          },
+          "data_type": {
+            "type": "string",
+            "description": "数据类型（MRO/MDT）"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "开始时间"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "结束时间"
+          },
+          "parsed": {
+            "type": "integer",
+            "description": "解析状态（0未完成 1已完成）",
+            "default": 0
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态（0未处理 1完成）",
+            "default": 0
+          },
+          "trigger_check": {
+            "type": "integer",
+            "description": "是否需要触发检查（0需要 1不需要）",
+            "default": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间"
+          }
+        }
+      },
+      "TaskCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "data_type",
+          "start_time",
+          "end_time",
+          "enodebids"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "任务名称"
+          },
+          "data_type": {
+            "type": "string",
+            "description": "任务类型（MRO/MDT）"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "任务开始时间"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "任务结束时间"
+          },
+          "remark": {
+            "type": "string",
+            "description": "任务备注"
+          },
+          "enodebids": {
+            "type": "array",
+            "description": "基站ID列表",
+            "items": {
+              "type": "string",
+              "description": "基站ID"
+            }
+          }
+        }
+      },
+      "TaskDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Task"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "enb_tasks": {
+                "type": "array",
+                "description": "关联的基站任务列表",
+                "items": {
+                  "$ref": "#/components/schemas/EnbTask"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/api/gateway/list": {
+      "get": {
+        "summary": "获取网关列表",
+        "tags": [
+          "网关管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取网关列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Gateway"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取网关列表成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gateway/{id}": {
+      "get": {
+        "summary": "获取单个网关",
+        "tags": [
+          "网关管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "网关ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取网关",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Gateway"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取网关成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "网关不存在"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新网关信息",
+        "tags": [
+          "网关管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "网关ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "主机地址"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "状态(0-离线,1-在线)"
+                  },
+                  "switch": {
+                    "type": "integer",
+                    "description": "开关(0-关闭,1-开启)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功更新网关",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Gateway"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "更新网关成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除网关",
+        "tags": [
+          "网关管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "网关ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功删除网关",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": null
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "删除网关成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gateway/register": {
+      "post": {
+        "summary": "注册网关",
+        "description": "如果网关已存在则更新状态为在线，如果不存在则创建新网关",
+        "tags": [
+          "网关管理"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "port"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "网关ID"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功注册网关",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Gateway"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "注册网关成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gateway/{id}/nds": {
+      "post": {
+        "summary": "设置网关关联的NDS",
+        "tags": [
+          "网关管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "网关ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ndsIds"
+                ],
+                "properties": {
+                  "ndsIds": {
+                    "type": "array",
+                    "description": "NDS ID列表",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "example": [
+                      1,
+                      2,
+                      3
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功设置网关关联的NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Gateway"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "设置网关NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "存在无效的NDS ID或重复的NDS关联"
+          },
+          "404": {
+            "description": "网关不存在"
+          }
+        }
+      }
+    },
+    "/api/nds/list": {
+      "get": {
+        "summary": "获取NDS列表",
+        "tags": [
+          "NDS管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取NDS列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NDS"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取NDS列表成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nds/{id}": {
+      "get": {
+        "summary": "获取单个NDS",
+        "tags": [
+          "NDS管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "NDS ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NDS"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NDS不存在"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新NDS信息",
+        "tags": [
+          "NDS管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "NDS ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NDS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功更新NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NDS"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "更新NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NDS不存在"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除NDS",
+        "tags": [
+          "NDS管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "NDS ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功删除NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "删除NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NDS不存在"
+          }
+        }
+      }
+    },
+    "/api/nds": {
+      "post": {
+        "summary": "创建NDS",
+        "tags": [
+          "NDS管理"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NDS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NDS"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "创建NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ndsfiles/filter": {
+      "post": {
+        "summary": "过滤文件路径",
+        "tags": [
+          "NDS文件管理"
+        ],
+        "description": "根据NDS ID和数据类型过滤文件路径列表，返回符合条件的文件路径。\n- 使用Redis过滤已存在的文件\n- 过滤非任务时间范围内的文件\n- 过滤不匹配数据类型的文件\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ndsId",
+                  "data_type",
+                  "file_paths"
+                ],
+                "properties": {
+                  "ndsId": {
+                    "type": "integer",
+                    "description": "NDS ID"
+                  },
+                  "data_type": {
+                    "type": "string",
+                    "description": "数据类型"
+                  },
+                  "file_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "需要过滤的文件路径列表"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "过滤成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "文件路径过滤完成"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "符合条件的文件路径列表"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "429": {
+            "description": "Redis内存负荷过高"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/ndsfiles/batchAddTasks": {
+      "post": {
+        "summary": "批量添加NDS文件任务",
+        "tags": [
+          "NDS文件管理"
+        ],
+        "description": "批量添加NDS文件任务记录。\n- file_hash 由系统根据 ndsId、file_path 和 sub_file_name 自动生成\n- 如果文件已存在（file_hash相同）则跳过\n- 支持高并发写入，使用事务确保数据一致性\n- 自动从文件路径提取时间信息\n- 过滤不存在于CellData表中的eNodeBID\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NDSFile"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "批量添加NDS文件任务完成"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "description": "成功入库的记录数"
+                        },
+                        "filtered": {
+                          "type": "integer",
+                          "description": "过滤后的记录数"
+                        },
+                        "original": {
+                          "type": "integer",
+                          "description": "原始数据数量"
+                        },
+                        "valid": {
+                          "type": "integer",
+                          "description": "符合任务条件的记录数"
+                        },
+                        "queued": {
+                          "type": "integer",
+                          "description": "成功加入队列的记录数"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "429": {
+            "description": "Redis内存负荷过高"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/parser/list": {
+      "get": {
+        "summary": "获取Parser列表",
+        "tags": [
+          "Parser管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取Parser列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Parser"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取Parser列表成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/parser/{id}": {
+      "get": {
+        "summary": "获取单个Parser",
+        "tags": [
+          "Parser管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Parser ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取Parser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Parser"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取Parser成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parser不存在"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新Parser信息",
+        "tags": [
+          "Parser管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Parser ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Parser名称"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "状态(0-离线,1-在线)"
+                  },
+                  "switch": {
+                    "type": "integer",
+                    "description": "开关(0-关闭,1-开启)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功更新Parser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Parser"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "更新Parser成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除Parser",
+        "tags": [
+          "Parser管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Parser ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功删除Parser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": null
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "删除Parser成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/parser/register": {
+      "post": {
+        "summary": "注册Parser",
+        "description": "如果Parser已存在则更新状态为在线，如果不存在则创建新Parser",
+        "tags": [
+          "Parser管理"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "port"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Parser ID"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功注册Parser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Parser"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "注册Parser成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/parser/{id}/gateway": {
+      "post": {
+        "summary": "设置Parser关联的Gateway",
+        "tags": [
+          "Parser管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Parser ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gatewayId"
+                ],
+                "properties": {
+                  "gatewayId": {
+                    "type": "string",
+                    "description": "Gateway ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功设置Parser关联的Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Parser"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "设置Parser Gateway成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "指定的Gateway不存在"
+          },
+          "404": {
+            "description": "Parser不存在"
+          }
+        }
+      }
+    },
+    "/api/scanner/list": {
+      "get": {
+        "summary": "获取Scanner列表",
+        "tags": [
+          "Scanner管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取Scanner列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Scanner"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取Scanner列表成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scanner/{id}": {
+      "get": {
+        "summary": "获取单个Scanner",
+        "tags": [
+          "Scanner管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Scanner ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取Scanner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Scanner"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取Scanner成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scanner不存在"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新Scanner信息",
+        "tags": [
+          "Scanner管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Scanner ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Scanner名称"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "状态(0-离线,1-在线)"
+                  },
+                  "switch": {
+                    "type": "integer",
+                    "description": "开关(0-关闭,1-开启)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功更新Scanner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Scanner"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "更新Scanner成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除Scanner",
+        "tags": [
+          "Scanner管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Scanner ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功删除Scanner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": null
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "删除Scanner成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scanner/register": {
+      "post": {
+        "summary": "注册Scanner",
+        "description": "如果Scanner已存在则更新状态为在线，如果不存在则创建新Scanner",
+        "tags": [
+          "Scanner管理"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "port"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Scanner ID"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "端口号"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功注册Scanner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Scanner"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "注册Scanner成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scanner/{id}/gateway": {
+      "post": {
+        "summary": "设置Scanner关联的Gateway",
+        "tags": [
+          "Scanner管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Scanner ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gatewayId"
+                ],
+                "properties": {
+                  "gatewayId": {
+                    "type": "string",
+                    "description": "Gateway ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功设置Scanner关联的Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Scanner"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "设置Scanner Gateway成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "指定的Gateway不存在"
+          },
+          "404": {
+            "description": "Scanner不存在"
+          }
+        }
+      }
+    },
+    "/api/scanner/{id}/nds": {
+      "post": {
+        "summary": "设置Scanner关联的NDS",
+        "description": "只能设置已关联Gateway的NDS列表中的NDS",
+        "tags": [
+          "Scanner管理"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Scanner ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ndsIds"
+                ],
+                "properties": {
+                  "ndsIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "NDS ID列表"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功设置Scanner关联的NDS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Scanner"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "设置Scanner NDS成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "可能的错误：\n1. Scanner未关联Gateway，无法设置NDS\n2. 存在无效的NDS ID\n3. 存在不在Gateway NDS列表中的NDS ID\n4. 存在重复的NDS关联\n"
+          },
+          "404": {
+            "description": "Scanner不存在"
+          }
+        }
+      }
+    },
+    "/api/task": {
+      "get": {
+        "summary": "获取任务列表",
+        "tags": [
+          "任务管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回任务列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取任务列表成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "创建任务",
+        "tags": [
+          "任务管理"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建任务",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "task": {
+                          "$ref": "#/components/schemas/Task"
+                        },
+                        "enbTasksCount": {
+                          "type": "integer",
+                          "description": "创建的基站任务数量"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "创建任务成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task/{id}": {
+      "get": {
+        "summary": "获取任务详情",
+        "tags": [
+          "任务管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "任务ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回任务详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/TaskDetail"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取任务详情成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "任务不存在"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除任务",
+        "tags": [
+          "任务管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "任务ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功删除任务",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": null
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "删除任务成功"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "任务不存在"
+          }
+        }
+      }
+    },
+    "/api/task/check": {
+      "get": {
+        "summary": "检查指定基站在指定时间是否有任务",
+        "tags": [
+          "任务管理"
+        ],
+        "parameters": [
+          {
+            "name": "enodebid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "基站ID"
+          },
+          {
+            "name": "time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "检查时间点"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "检查成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "在指定时间范围内存在任务"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "hasTask": {
+                          "type": "boolean",
+                          "description": "是否存在任务"
+                        },
+                        "taskInfo": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "enodebid": {
+                              "type": "string",
+                              "description": "基站ID"
+                            },
+                            "start_time": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "任务开始时间"
+                            },
+                            "end_time": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "任务结束时间"
+                            },
+                            "trigger_check": {
+                              "type": "integer",
+                              "description": "是否已触发检查"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task/getTimeRange": {
+      "get": {
+        "summary": "获取所有任务时间范围",
+        "tags": [
+          "任务管理"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取时间范围",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "成功获取时间范围"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "timeRanges": {
+                          "type": "array",
+                          "description": "时间范围列表",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "start_time": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "开始时间"
+                              },
+                              "end_time": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "结束时间"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

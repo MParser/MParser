@@ -1,0 +1,141 @@
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+env/
+
+# Node.js相关
+node_modules/
+jspm_packages/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+web_modules/
+bower_components
+.grunt
+.lock-wscript
+build/Release
+pids
+*.pid
+*.seed
+*.pid.lock
+lib-cov
+
+# TypeScript相关
+*.tsbuildinfo
+
+# 缓存文件
+.cache/
+.parcel-cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.fusebox/
+.dynamodb/
+.tern-port
+.temp
+**/.vitepress/cache
+
+# 构建输出
+dist/
+.next
+out
+.nuxt
+.vuepress/dist
+**/.vitepress/dist
+.docusaurus
+.serverless/
+
+# 测试相关
+.coverage
+.pytest_cache/
+htmlcov/
+coverage
+*.lcov
+.nyc_output
+.vscode-test
+
+# 编辑器/IDE相关
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 环境变量文件
+.env
+.env.*
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# 日志文件
+*.log
+logs/
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Docker相关
+.docker/
+
+# 项目特定文件
+config.local.json
+*.local.*
+.hintrc
+/*.tar
+config.json
+*/migrations/
+
+# 临时文件
+*.tmp
+*.temp
+
+# Yarn v2相关
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

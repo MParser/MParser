@@ -1,0 +1,5 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "pylint.args": ["--errors-only", "--disable=C0111"],
+    "python.linting.pylintArgs": ["--errors-only"]
+}

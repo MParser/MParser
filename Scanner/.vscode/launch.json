@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-B"
+            ],
+            "env": {
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "PYTHONPYCACHEPREFIX": "NUL"
+            },
+            "python": "${workspaceFolder}/../venv/Scripts/python.exe"
+        }
+    ]
+}
