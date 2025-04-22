@@ -2,10 +2,10 @@ import pandas as pd
 from io import BytesIO
 from lxml import etree
 from typing import Dict, List, Union
+import numpy as np
 
 
 class ParseError(Exception):
-    """自定义异常类用于解析错误"""
 
     def __init__(self, data_type, message, error_type="UnknownError"):
         super().__init__(message)
@@ -17,43 +17,8 @@ class ParseError(Exception):
         return f"Parser({self.data_type})[{self.error_type}] {self.message}"
 
 
-# noinspection PyPep8Naming
 def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, float]]]]:
-    """解析MRO - XML格式数据
 
-    Args:
-        data (BytesIO | bytes): MRO数据 (字节|数据流)
-
-    Returns:
-        List[List[Dict[str, Union[pd.Timestamp, int, float]]]]: 解析后的数据列表，格式如下：
-        [
-            [  # 符合MRO数据字段格式的每个measurement的数据
-                {   # 每条记录的字段
-                    'DataTime': pd.Timestamp,          # 数据时间
-                    'MR_LteScENBID': int,             # 服务小区基站ID
-                    'MR_LteScEarfcn': int,            # 服务小区频点
-                    'MR_LteScPci': int,               # 服务小区PCI
-                    'MR_LteScSPCount': int,           # 服务小区采样点数
-                    'MR_LteScRSRPAvg': float,         # 服务小区RSRP平均值
-                    'MR_LteNcEarfcn': int,            # 邻区频点
-                    'MR_LteNcPci': int,               # 邻区PCI
-                    'MR_LteNcSPCount': int,           # 邻区采样点数.
-                    'MR_LteNcRSRPAvg': float,         # 邻区RSRP平均值
-                    'MR_LteCC6Count': int,            # 同频6db采样点数
-                    'MR_LteMOD3Count': int            # MOD3采样点数
-                },
-                ...  # 更多记录
-            ],
-            ...  # 更多measurement数据
-        ]
-
-    Raises:
-        ParseError: 解析错误，包含以下类型：
-            - DataError: 无法获取MRO时间(15分钟粒度时间)
-            - XMLSyntaxError: XML语法错误
-            - TypeError: 不支持的数据类型
-            - UnexpectedError: 其他未知错误
-    """
     try:
         result = []
 
@@ -67,8 +32,6 @@ def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, f
             tree = etree.fromstring(data)
         elif isinstance(data, BytesIO):
             tree = etree.parse(data).getroot()
-        else:
-            raise ParseError(data_type="MRO", error_type="TypeError", message="Unsupported data type for parsing")
         LteScENBID = tree.find('.//eNB').attrib['id']  # 提取eNodeBID
         file_header = tree.find('.//fileHeader')
         if file_header is not None:
@@ -161,5 +124,50 @@ def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, f
         raise ParseError(data_type="MRO", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
 
 
-def mdt(data):
-    return []
+def mdt(data: BytesIO | bytes) -> List[List[Dict[str, Union[str, int, float]]]]:
+    try:
+        # 读取CSV文件 - 避免不必要的数据复制
+        if isinstance(data, bytes):
+            csv_data = BytesIO(data)
+        elif isinstance(data, BytesIO):
+            csv_data = data
+        result = []
+        keep_fields = [
+            'MeasAbsoluteTimeStamp', 'MME Group ID', 'MME Code', 'MME UE S1AP ID', 'Report CID', 'Report PCI', 'Report Freq', 'TR ID', 'TRSR ID', 'TCE ID',
+            'Longitude', 'LatitudeSign', 'Latitude', 'SC ID', 'SC PCI', 'SC Freq', 'SCRSRP', 'SCRSRQ'
+        ]
+        # 定义默认值映射 - 为空字段提供默认值
+        default_values = {
+            'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1,
+            'Report CID': -1, 'Report PCI': -1, 'Report Freq': -1,
+            'TR ID': -1, 'TRSR ID': -1, 'TCE ID': -1,
+            'SC ID': -1, 'SC PCI': -1, 'SC Freq': -1,
+            'SCRSRP': -140, 'SCRSRQ': -20,
+            'LatitudeSign': -1
+        }
+
+        df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
+        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
+        if df.empty:
+            return result # CSV文件为空
+        df = df[keep_fields] # 筛选指定字段
+        # 将MeasAbsoluteTimeStamp转为日期时间格式
+        df['MeasAbsoluteTimeStamp'] = pd.to_datetime(df['MeasAbsoluteTimeStamp'], format='%Y-%m-%dT%H:%M:%S.%f').dt.strftime('%Y-%m-%d %H:%M:%S')
+        
+        df = df.fillna(default_values) # 使用默认值填充空字段
+        df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S') # 添加DataTime列, 值为MeasAbsoluteTimeStamp向上取整(15分钟粒度)
+        
+        result_dict = df.to_dict('records')
+        result.append(result_dict)
+        import gc
+        del df
+        gc.collect()
+        return result
+    except pd.errors.ParserError as e:
+        raise ParseError(data_type="MDT", error_type="CSVParserError", message=f"CSV Parser Error: {str(e)}")
+    except ValueError as e:
+        raise ParseError(data_type="MDT", error_type="ValueError", message=f"Value Error: {str(e)}")
+    except KeyError as e:
+        raise ParseError(data_type="MDT", error_type="KeyError", message=f"Missing Key: {str(e)}")
+    except Exception as e:
+        raise ParseError(data_type="MDT", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
