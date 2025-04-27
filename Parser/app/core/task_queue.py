@@ -2,7 +2,7 @@ import asyncio
 import json
 from typing import List
 from redis.asyncio import Redis
-from app.logs.log_service import log_service
+from app.core.logger import log
 
 
 class TaskQueue:
@@ -33,7 +33,7 @@ class TaskQueue:
             else:
                 raise Exception("Connect fail.")
         except Exception as e:
-            log_service.error(f"Connect redis error:{e}")
+            log.error(f"Connect redis error:{e}")
             return False
         
     
@@ -41,7 +41,7 @@ class TaskQueue:
         try:
             await self.redis.close()
         except Exception as e:
-            log_service.error(f"Close redis error:{e}")
+            log.error(f"Close redis error:{e}")
     
     
     async def pop_task(self, timeout=0):
@@ -65,17 +65,17 @@ class TaskQueue:
                             raw_data = raw_data.decode('utf-8')
                         task_data = json.loads(raw_data)
                     except json.JSONDecodeError as e:
-                        log_service.error(f"Failed to parse task data as JSON: {e}")
+                        log.error(f"Failed to parse task data as JSON: {e}")
                         task_data = {"error": "Invalid JSON data", "raw_data": raw_data}
                     except Exception as e:
-                        log_service.error(f"Error processing task data: {e}")
+                        log.error(f"Error processing task data: {e}")
                         task_data = {"error": str(e), "raw_data": raw_data}
                     
                     await self._adjust_queue_order(queue_name)
                     return task_data
                 return None
         except Exception as e:
-            log_service.error(f"Error during task popping: {e}")
+            log.error(f"Error during task popping: {e}")
             await asyncio.sleep(1)
             return None
     
@@ -90,4 +90,4 @@ class TaskQueue:
                 self.queue_keys.remove(processed_queue)
                 self.queue_keys.append(processed_queue)
         except Exception as e:
-            log_service.error(f"Error adjusting queue order: {e}")
+            log.error(f"Error adjusting queue order: {e}")

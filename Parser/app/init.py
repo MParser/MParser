@@ -81,7 +81,7 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
         status_code=200,  # 统一使用200状态码，通过code字段区分错误
         content=ResponseModel(
             code=exc.error_code,
-            msg=exc.error_msg,
+            message=exc.error_msg,
             data=exc.error_detail
         ).model_dump()
     )
@@ -176,7 +176,7 @@ async def custom_swagger_ui_html():
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="/static/swagger-ui-bundle.js",
         swagger_css_url="/static/swagger-ui.css",
-        swagger_favicon_url="/static/favicon.svg",
+        swagger_favicon_url="/static/gateway.svg",
     )
 
 # 自定义 ReDoc 路由
@@ -187,5 +187,5 @@ async def redoc_html():
         openapi_url=app.openapi_url,
         title=f"{config.get('app.name')} - ReDoc",
         redoc_js_url="/static/redoc.standalone.js",
-        redoc_favicon_url="/static/favicon.svg",
+        redoc_favicon_url="/static/gateway.svg",
     )
