@@ -10,7 +10,7 @@ server = Server()
 
 # noinspection PyUnusedLocal
 @event_manager.on_startup
-async def startup_event(app: FastAPI):
+async def startup_event(_app: FastAPI):
     """
     应用启动事件
     在应用启动时执行

@@ -450,9 +450,9 @@ class Gateway:
                     else:
                         file_data.extend(data)
             if not file_data:
-                log_service.error(f"读取文件失败: 文件内容为空")
+                log_service.error(f"读取NDS[{nds_id}]文件({file_path})失败: 文件内容为空")
                 return None
             return file_data
         except Exception as e:
-            log_service.error(f"读取文件失败: {e}")
+            log_service.error(f"读取NDS[{nds_id}]文件({file_path})失败: {e}")
             return None

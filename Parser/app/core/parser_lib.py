@@ -2,7 +2,6 @@ import pandas as pd
 from io import BytesIO
 from lxml import etree
 from typing import Dict, List, Union
-import numpy as np
 
 
 class ParseError(Exception):
@@ -17,7 +16,7 @@ class ParseError(Exception):
         return f"Parser({self.data_type})[{self.error_type}] {self.message}"
 
 
-def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, float]]]]:
+def mro(data: BytesIO | bytes) -> List[Dict[str, Union[pd.Timestamp, int, float]]]:
 
     try:
         result = []
@@ -113,7 +112,13 @@ def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, f
             grouped['MR_LteNcPci'] = grouped['MR_LteNcPci'].astype('int32')
 
             result.append(grouped.to_dict('records'))  # 将处理后的数据添加到结果中
-        return result
+        
+        # 将嵌套列表扁平化为单一列表
+        flat_result = []
+        for batch in result:
+            flat_result.extend(batch)
+        
+        return flat_result  # 返回扁平化后的列表
     except etree.XMLSyntaxError as e:
         raise ParseError(data_type="MRO", error_type="XMLSyntaxError", message=f"XML Syntax Error: {str(e)}")
     except ValueError as e:
@@ -124,7 +129,7 @@ def mro(data: BytesIO | bytes) -> List[List[Dict[str, Union[pd.Timestamp, int, f
         raise ParseError(data_type="MRO", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
 
 
-def mdt(data: BytesIO | bytes) -> List[List[Dict[str, Union[str, int, float]]]]:
+def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
     try:
         # 读取CSV文件 - 避免不必要的数据复制
         if isinstance(data, bytes):
@@ -162,7 +167,13 @@ def mdt(data: BytesIO | bytes) -> List[List[Dict[str, Union[str, int, float]]]]:
         import gc
         del df
         gc.collect()
-        return result
+        
+        # 将嵌套列表扁平化为单一列表
+        flat_result = []
+        for batch in result:
+            flat_result.extend(batch)
+        
+        return flat_result  # 返回扁平化后的列表
     except pd.errors.ParserError as e:
         raise ParseError(data_type="MDT", error_type="CSVParserError", message=f"CSV Parser Error: {str(e)}")
     except ValueError as e:

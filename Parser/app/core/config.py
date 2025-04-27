@@ -28,9 +28,6 @@ class _ConfigManager:
         增强的类型转换功能
         支持：整数、浮点数、布尔值、None值的转换
         """
-        if not isinstance(value, str):
-            return value
-            
         # 处理None值
         if value.lower() in ('none', 'null'):
             return None

@@ -12,20 +12,7 @@ def generate_request_id() -> str:
     return str(uuid.uuid4())
 
 def response_wrapper(func: Callable) -> Callable:
-    """
-    错误处理装饰器
-    用于统一处理API错误和响应
-    
-    示例:
-    ```python
-    @router.get("/users/{user_id}")
-    @handle_errors
-    async def get_user(user_id: int):
-        if user_id not in users:
-            raise NotFound(f"用户不存在: {user_id}")
-        return users[user_id]  # 成功时直接返回数据
-    ```
-    """
+    """响应包装器"""
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:

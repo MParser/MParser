@@ -13,9 +13,7 @@ export class ParserController {
     static async list(_req: Request, res: Response): Promise<void> {
         try {
             const parsers = await mysql.parserList.findMany({
-                include: {
-                    gateway: true
-                }
+                include: { gateway: true }
             });
             res.success(parsers, '获取Parser列表成功');
         } catch (error: any) {
@@ -29,9 +27,7 @@ export class ParserController {
             const id = req.params.id;
             const parser = await mysql.parserList.findUnique({ 
                 where: { id },
-                include: {
-                    gateway: true
-                }
+                include: { gateway: { include: { ndsLinks: { include: { nds: true } } } } }
             });
             if (parser) {
                 res.success(parser, '获取Parser成功');
@@ -39,6 +35,7 @@ export class ParserController {
                 res.notFound('Parser不存在');
             }
         } catch (error: any) {
+            logger.error('获取Parser失败:', error);
             res.internalError('获取Parser失败');
         }
     }
@@ -60,6 +57,7 @@ export class ParserController {
                 // 不存在则添加Parser,从req.requestInfo中获取IP地址，添加进data中
                 data.host = req.requestInfo.ip;
                 data.switch = 0;
+                data.pools = data.pools || 5; // 使用传入的pools值或默认值5
                 const newParser = await mysql.parserList.create({ data });
                 res.success(newParser, "注册Parser成功");
             }

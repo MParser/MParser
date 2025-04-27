@@ -71,8 +71,7 @@ async def handle_scan(nds_id: str, path: str, filter_pattern: Optional[str], res
         response.type = WSMessageType.ERROR
 
 
-async def handle_read(nds_id: str, path: str, header_offset: int, size: int,
-                      client_id: str, response: WS_RESPONSE) -> None:
+async def handle_read(nds_id: str, path: str, header_offset: int, size: int, client_id: str, response: WS_RESPONSE) -> None:
     """处理读取请求"""
     if not all([nds_id, path, isinstance(header_offset, int), isinstance(size, int), size > 0]):
         raise ValueError("缺少必要参数或参数类型错误")
@@ -81,9 +80,7 @@ async def handle_read(nds_id: str, path: str, header_offset: int, size: int,
         nds_id = str(nds_id)  # 确保 nds_id 是字符串类型
         log.info(f"read file{path} header_offset: {header_offset}, size:{size}")
         async with nds_pool.get_client(nds_id) as client:
-            log.info("Get NDS")
             if data := await client.read_file_bytes(path, header_offset, size):
-                log.info("Get Data")
                 if await ws_manage.send_file(client_id, data, response.request_id):
                     response.message = "success"
                     response.data = {
