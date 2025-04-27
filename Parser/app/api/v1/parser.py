@@ -5,7 +5,7 @@ import asyncio
 import json
 import time
 from aiomultiprocess import Pool
-from app.core.parser_lib import mro, mdt, ParseError
+from app.core.parse_lib import mro, mdt, ParseError
 from app.core.task_queue import TaskQueue
 from clickhouse_driver import Client as CKClient
 
