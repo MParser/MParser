@@ -170,15 +170,60 @@ export class NDSFileController { // NDSFile任务控制类
             return;
         }
 
-        // 调用任务管理器更新任务状态
-        const transactionResult = await taskManager.updateTask(file_hash, file_time, status)
-        if (transactionResult) {
-            res.success("更新成功"); 
-        }else {
-            res.internalError("更新失败"); 
+        try {
+            // 判断Redis负载
+            const { isMemoryHigh } = await NDSFileController.checkRedisMemory();
+            
+            let success = false;
+            
+            if (!isMemoryHigh) {
+                // 如果Redis负载正常，尝试将更新任务加入队列
+                success = await redis.batchTaskUpdateEnqueue([{ file_hash, file_time, status }]);
+            }
+            
+            // 如果Redis负载过高或入队失败，直接更新数据库
+            if (isMemoryHigh || !success) {
+                success = await this.updateTask(file_hash, file_time, status);
+            }
+            
+            if (success) {
+                res.success("更新成功");
+            } else {
+                res.internalError("更新失败");
+            }
+        } catch (error) {
+            logger.error('更新任务状态出错:', error);
+            res.internalError("更新失败");
         }
     }
 
+    private static async updateTask(file_hash: string, file_time: Date, status: number): Promise<boolean> {
+        try {
+            await taskManager.updateTask(file_hash, file_time, status);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    public static async updateTaskStatusThread(): Promise<void> {
+        try {
+            // 无限循环
+            logger.info('NDSFiles - 更新任务状态线程已启动');
+            while (true) {
+                try {
+                    const result = await redis.readTaskUpdateQueue();
+                    if (!result) continue;
+                    const res = await taskManager.updateTask(result.file_hash, result.file_time, result.status);
+                    if (!res) logger.error('更新任务状态失败:', result);
+                } catch (error) {
+                    logger.error('更新任务状态出错:', error);
+                }
+            }
+        } catch (error) {
+            logger.error('更新任务状态出错:', error);
+        }
+    }
 
     /**
      * 定时任务流程函数
@@ -193,8 +238,10 @@ export class NDSFileController { // NDSFile任务控制类
 
     // 静态初始化块
     static async startSchedule(): Promise<void> {
-        // 延迟5秒后开始第一次任务检查
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 启动更新任务状态线程,不阻塞主线程
+        this.updateTaskStatusThread().finally();
+        // 启动定时任务
         setInterval(async () => { await this.scheduleTask(); }, this.TASK_CHECK_INTERVAL); 
         logger.info('NDSFiles - 定时任务已启动');
     }

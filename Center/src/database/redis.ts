@@ -19,6 +19,11 @@ interface BatchResult {
     failed: number;
 }
 
+interface TaskUpdateItem {
+    file_hash: string;
+    file_time: Date;
+    status: number;
+}
 
 interface MemoryInfo {
     used: number;      // 当前已使用的内存（字节）
@@ -32,6 +37,7 @@ class RedisManager extends EventEmitter {
     private redis!: Redis;
     private readonly TASK_QUEUE_PREFIX = 'task_for_nds:';
     private readonly SCAN_LIST_PREFIX = "scan_for_nds:";
+    private readonly TASK_UPDATE_QUEUE_PREFIX = "task_update_queue:";
     private isConnected = false;
     private reconnectAttempts = 0;
     private readonly maxReconnectAttempts = 20;
@@ -182,6 +188,7 @@ class RedisManager extends EventEmitter {
         }
     }
 
+    // 确保Redis连接
     private async ensureConnection(): Promise<void> {
         if (!this.isConnected) {
             try {
@@ -250,8 +257,6 @@ class RedisManager extends EventEmitter {
             throw error;
         }
     }
-
-
 
     // 批量插入队列数据
     public async batchTaskEnqueue(items: QueueItem[]): Promise<BatchResult> {
@@ -424,6 +429,40 @@ class RedisManager extends EventEmitter {
         } catch (error) {
             logger.error('清理过期扫描记录失败:', error);
             throw error;
+        }
+    }
+
+    // 批量插入任务更新队列，使用FIFO策略
+    public async batchTaskUpdateEnqueue(items: TaskUpdateItem[]): Promise<boolean> {
+        try {
+            await this.ensureConnection();
+            const pipeline = this.redis.multi();
+            items.forEach(item => {
+                pipeline.rpush(this.TASK_UPDATE_QUEUE_PREFIX, JSON.stringify(item));
+            });
+            const results = await pipeline.exec();
+            if (!results) {
+                return false;
+            }
+            return true;
+        } catch (error) {
+            logger.error('插入任务更新队列失败:', error);
+            return false;
+        }
+    }
+
+    // 读取一条任务更新队列数据，使用FIFO策略并阻塞式读取, 当队列为空时，会阻塞直到有数据
+    public async readTaskUpdateQueue(): Promise<TaskUpdateItem | null> {
+        try {
+            await this.ensureConnection();
+            const result = await this.redis.brpop(this.TASK_UPDATE_QUEUE_PREFIX, 0);
+            if (!result) {
+                return null;
+            }
+            return JSON.parse(result[1]);
+        } catch (error) {
+            logger.error('读取任务更新队列失败:', error);
+            return null;
         }
     }
 

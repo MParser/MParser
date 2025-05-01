@@ -3,7 +3,6 @@
  */
 
 import crypto from 'crypto';
-import logger from './logger';
 
 /**
  * 从文件路径中提取时间信息
@@ -16,8 +15,6 @@ export function extractTimeFromPath(filePath: string): Date | null {
     if (!match) return null;
 
     const timeStr = match[0];
-    // const time = `${timeStr.substring(0, 4)}-${timeStr.substring(4, 6)}-${timeStr.substring(6, 8)}T${timeStr.substring(8, 10)}:${timeStr.substring(10, 12)}:${timeStr.substring(12, 14)}.000Z`
-    // const date = new Date(time)
 
     const date = new Date(Date.UTC(
         parseInt(timeStr.substring(0, 4)),    // 年份
