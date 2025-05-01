@@ -11,7 +11,8 @@
     "test:coverage": "jest --coverage",
     "build": "tsc && xcopy /E /I /Y .\\src\\docs .\\dist\\docs && copy /Y .\\config.json .\\dist\\ && copy /Y .\\.env .\\dist\\ && xcopy /E /I /Y .\\dist ..\\dist\\Center\\",
     "watch": "tsc -w",
-    "sync": "prisma migrate dev && prisma generate"
+    "sync": "prisma migrate dev && prisma generate",
+    "none": "cd ."
   },
   "author": "Nixevol",
   "repository": "https://github.com/MParser/Center.git",

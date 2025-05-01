@@ -100,7 +100,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Build",
+      "name": "Build Center",
       "presentation": {
         "group": "Build",
         "order": 0
@@ -111,6 +111,30 @@
       "skipFiles": ["<node_internals>/**"],
       "cwd": "${workspaceFolder}/Center"
     },
+    {
+      "name": "Build Images",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/dockers/build_images.bat",
+      "cwd": "${workspaceFolder}/dockers",
+      "console": "integratedTerminal",
+      "presentation": {
+        "group": "Build",
+        "order": 0
+      }
+    },
+    {
+      "name": "Build Codes",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/build.bat",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "presentation": {
+        "group": "Build",
+        "order": 0
+      }
+    }
   ]
   
 }
