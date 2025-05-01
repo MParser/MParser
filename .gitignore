@@ -143,3 +143,4 @@ config.json
 Server_Temp/
 **/temp
 **/migration_lock.toml
+/dist
