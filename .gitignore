@@ -97,7 +97,6 @@ coverage
 
 # 环境变量文件
 .env
-.env.*
 .env.*.local
 .env.development.local
 .env.test.local
@@ -119,9 +118,9 @@ Thumbs.db
 config.local.json
 *.local.*
 .hintrc
-/*.tar
+**/*.tar
 config.json
-*/migrations/
+**/migrations/
 
 # 临时文件
 *.tmp
@@ -143,3 +142,4 @@ config.json
 # 手动配置
 Server_Temp/
 **/temp
+**/migration_lock.toml
