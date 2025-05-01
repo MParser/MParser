@@ -9,7 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build": "tsc && xcopy /E /I /Y .\\src\\docs .\\dist\\docs && copy /Y .\\config.json .\\dist\\ && copy /Y .\\.env .\\dist\\",
+    "build": "tsc && xcopy /E /I /Y .\\src\\docs .\\dist\\docs && copy /Y .\\config.json .\\dist\\ && copy /Y .\\.env .\\dist\\ && xcopy /E /I /Y .\\dist ..\\dist\\Center\\",
     "watch": "tsc -w",
     "sync": "prisma migrate dev && prisma generate"
   },
