@@ -10,8 +10,8 @@ COPY prisma ./prisma
 
 
 # 仅安装生产环境依赖
-RUN yarn install --production --frozen-lockfile && yarn add @prisma/client && yarn prisma generate
-
+RUN yarn install --production --frozen-lockfile
+RUN yarn add @prisma/client && yarn prisma generate
 
 # 启动应用
 CMD ["node", "app.js"]
