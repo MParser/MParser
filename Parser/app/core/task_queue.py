@@ -13,7 +13,7 @@ class TaskQueue:
         self.password = password
         self.db = db
         self._is_running = False
-        self.queue_keys = [f"nds_queue:{nds_id}" for nds_id in self.nds_ids]
+        self.queue_keys = [f"task_for_nds:{nds_id}" for nds_id in self.nds_ids]
     
     async def connect(self):
         try:

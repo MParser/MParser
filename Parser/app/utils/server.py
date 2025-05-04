@@ -115,7 +115,10 @@ class Gateway:
                             if json_data.get("type") == "file" and json_data.get("data") == "end":
                                 break
                             elif json_data.get("type") == "error":
-                                raise Exception(json.dumps(json_data))
+                                # 使用ensure_ascii=False确保中文正常显示
+                                error_json = json.dumps(json_data, ensure_ascii=False, indent=2)
+                                log.error(f"Gateway返回错误: {error_json}")
+                                raise Exception(f"读取文件失败: {error_json}")
                         except json.JSONDecodeError:
                             log.error(f"无法解析响应: {data}")
                             continue
