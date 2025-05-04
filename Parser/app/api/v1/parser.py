@@ -1,7 +1,9 @@
+import io
 import copy
 import json
 import time
 import asyncio
+import zipfile
 from fastapi import APIRouter
 from app.core.logger import log
 from aiomultiprocess import Pool
@@ -334,23 +336,23 @@ async def process_in_pool(pool, task_params):
         
         # 解析返回结果
         status = result.get("status")
-        data = result.get("data")
+        results = result.get("data")
         error = result.get("error")
         processing_time = result.get("processing_time", 0)
         
         # 处理任务结果
         if status == "success":
             # 将数据插入ClickHouse
-            if data:
-                success, error_msg = await insert_data_to_clickhouse(data, data_type, file_hash, file_path, database_config)
-            else:
-                await server.task_update_status(file_hash, file_path, 2)
-                success = True
-            
-            if success:
-                log.info(f"数据处理完成，类型: {data_type}, 结果尺寸: {len(data)}, 耗时: {processing_time:.2f}秒")
-            else:
-                log.error(f"数据插入失败: {error_msg}")
+            for data in results:
+                if data:
+                    success, error_msg = await insert_data_to_clickhouse(data, data_type, file_hash, file_path, database_config)
+                else:
+                    await server.task_update_status(file_hash, file_path, 2)
+                    success = True
+                if success:
+                    log.info(f"数据处理完成，类型: {data_type}, 结果尺寸: {len(data)}, 耗时: {processing_time:.2f}秒")
+                else:
+                    log.error(f"数据插入失败: {error_msg}")
         
         else:
             # 尝试更新任务状态为失败
@@ -375,6 +377,8 @@ async def process_worker_task(nds_id, file_path, data_type, gateway_config, file
     """
     工作进程中的任务处理函数，负责获取数据和解析
     """
+    if not data_type or data_type not in ["MRO", "MDT"]:
+        return {"status": "error", "error": f"未知的数据类型: {data_type}"}
     start_time = time.time()
     try:
         # 在子进程中创建Gateway实例
@@ -386,17 +390,21 @@ async def process_worker_task(nds_id, file_path, data_type, gateway_config, file
         if not file_data:
             return {"status": "error", "error": f"读取文件失败: nds_id={nds_id}, path={file_path}" }
         
-        # 根据数据类型处理数据
-        if data_type == "MRO":
-            result = mro(file_data)
-        elif data_type == "MDT":
-            result = mdt(file_data)
-        else:
-            return {"status": "error", "error": f"未知的数据类型: {data_type}"}
-        
+        results = []
+        with zipfile.ZipFile(io.BytesIO(file_data)) as zip_file:
+            files = [f for f in zip_file.namelist() if f.lower().endswith(file_suffix)]
+            for file in files:
+                with zip_file.open(file) as f:
+                    data = f.read()
+                    if len(data) > 128:
+                        if data_type == "MRO":
+                            result = mro(data)
+                        elif data_type == "MDT":
+                            result = mdt(data)
+                        results.extend(result)
         processing_time = time.time() - start_time
         
-        return {"status": "success", "data": result, "processing_time": processing_time}
+        return {"status": "success", "data": results, "processing_time": processing_time}
         
     except ParseError as e:
         return {"status": "error", "error": f"解析{data_type}数据({file_hash})失败: {str(e)}", "processing_time": time.time() - start_time}
