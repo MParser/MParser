@@ -68,7 +68,7 @@ class WebSocketClient:
         self._file_chunks: List[bytes] = []
 
     async def is_connected(self) -> bool:
-        if self.ws is None or self.ws.closed:
+        if self.ws is None:
             return False
         
         try:
@@ -88,10 +88,10 @@ class WebSocketClient:
             self._receive_task = asyncio.create_task(self._message_handler())
         except Exception as e:
             log.error(f"WebSocket连接失败: {str(e)}")
-            raise WebSocketResponse(type="error", code=400, message=f"WebSocket连接失败: {str(e)}")
+            raise WebSocketResponse(type="error", code=400, message=f"{self.url} === WebSocket连接失败: {str(e)}")
 
     async def _message_handler(self):
-        while self._running and self.ws and not self.ws.closed:
+        while self._running and self.ws:
             try:
                 message = await self.ws.recv()
                 if isinstance(message, bytes):

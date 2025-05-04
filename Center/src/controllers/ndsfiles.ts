@@ -43,13 +43,16 @@ export class NDSFileController { // NDSFile任务控制类
         });
     }
 
+
     //检查Redis内存状态
-    private static async checkRedisMemory(): Promise<RedisMemoryCheckResult> {
+    public static async checkRedisMemory(): Promise<RedisMemoryCheckResult> {
+        // 尝试获取内存信息
         const memoryInfo = await redis.getMemoryInfo();
-        return {
+        const result =  {
             isMemoryHigh: memoryInfo.ratio >= REDIS_HIGH_MEMORY_THRESHOLD,
             ratio: memoryInfo.ratio
         };
+        return result;
     }
 
 
@@ -62,19 +65,22 @@ export class NDSFileController { // NDSFile任务控制类
      */
     public static async filterFiles(req: Request, res: Response): Promise<void> {
         try {
+            
             const { ndsId, data_type, file_paths } = req.body; // 获取请求体参数
+            
             if (!ndsId || !data_type || !Array.isArray(file_paths) || file_paths.length === 0) {
                 res.badRequest('参数错误');
                 return;
             }
             
+            
             // 检查Redis状态,如果负荷过高，取消处理
             const { isMemoryHigh } = await NDSFileController.checkRedisMemory();
             if (isMemoryHigh) {
+                logger.error('Redis内存负荷过高，无法处理请求')
                 res.customError('Redis内存负荷过高，无法处理请求', 429);
                 return;
             }
-
             // 使用Redis过滤已存在的文件
             const nonExistingPaths = await redis.filterNonExistingPaths(ndsId, file_paths);
             if (nonExistingPaths.length === 0) {

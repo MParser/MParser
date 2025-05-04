@@ -12,7 +12,20 @@ class Config {
     private _config: ConfigDict = {};
 
     constructor() {
-        this._configPath = path.join(__dirname, '../../config.json');
+        // 定义多个可能的配置文件路径，按优先级排序
+        const possiblePaths = [
+            path.join(__dirname, './config.json'),
+            path.join(__dirname, '../config.json'),
+            path.join(__dirname, '../../config.json'),
+            
+        ];
+        
+        // 查找第一个存在的配置文件
+        this._configPath = possiblePaths.find((path) => fs.existsSync(path)) || '';
+        
+        // 如果配置文件不存在，报错
+        if (!fs.existsSync(this._configPath)) throw new Error(`配置文件不存在: ${this._configPath}`);
+        console.log(`配置文件路径:${this._configPath}`)
         this._loadConfig();
     }
 

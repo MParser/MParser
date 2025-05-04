@@ -114,7 +114,7 @@ class PartitionManager {
         try {
             if (this.partitions.has(partition.name)) return; // 再次判断, 避免并发
             if (this.partitions.size === 0) { // 第一次添加
-                logger.info('当前无分区, 正在初始化分区...');
+                logger.info(`当前无分区, 正在初始化分区[${partition.name}]...`);
                 const createPartitionSql = `ALTER TABLE nds_file_list PARTITION BY RANGE (TO_DAYS(file_time)) (PARTITION ${partition.name} VALUES LESS THAN (TO_DAYS('${partition.p_date}')));`;
                 await mysql.$executeRawUnsafe(createPartitionSql);
                 logger.info('添加分区:'+ partition.name);

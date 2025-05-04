@@ -3,6 +3,7 @@ from app.core.logger import log
 from app.core.config import config
 from app.utils.server import Server
 from app.core.events import event_manager
+from app.core.scanner import start
 
 
 server = Server()
@@ -21,6 +22,7 @@ async def startup_event(app: FastAPI):
         log.info(f"正在注册节点[{config.get('app.name')}]...")
         response = await server.register()
         log.info(f"注册成功: {response.get('id')} - {response.get('name')}")
+        await start()
     except Exception as e:
         log.error(f"注册失败: {str(e)}")
     log.info("Event service started")

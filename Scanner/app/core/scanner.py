@@ -2,11 +2,12 @@ from app.core.logger import log
 from app.utils.server import Server
 from app.core.errors import NotFoundError
 from app.services.scanner import Scanner
+
 server = Server()
-scanner = Scanner()
+scanner_instance = Scanner()
+
 async def start():
-    """启动扫描器"""
-    
+    """启动扫描器并返回结果"""
     try:
         response = await server.info()
         if not response.get("gateway"):
@@ -23,10 +24,16 @@ async def start():
         if not gateway_nds or gateway_nds == []:
             raise ValueError("绑定网关DNS清单为空, 无法启动扫描器")
         
-        await scanner.start()
+        return await scanner_instance.start()
         
-        return response
     except Exception as e:
         log.error(f"扫描器启动失败: {str(e)}")
         raise ValueError(f"扫描器启动失败: {str(e)}")
-    
+
+async def stop():
+    """停止扫描器并返回结果"""
+    return await scanner_instance.stop()
+
+async def status():
+    """获取扫描器状态"""
+    return await scanner_instance.status()

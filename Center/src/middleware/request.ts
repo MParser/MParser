@@ -59,7 +59,12 @@ export const requestHandler = (req: Request, _res: Response, next: NextFunction)
         method: req.method,
         path: req.path,
         userAgent: req.headers['user-agent'],
-        request_id: req.body.request_id || req.params.request_id || uuid(),
+        // 增加防御性检查，避免访问undefined属性
+        request_id: (req.body && req.body.request_id) || 
+                   (req.params && req.params.request_id) ||
+                   (req.query && req.query.request_id) ||
+                   req.headers['x-request-id'] ||
+                   uuid(),
     };
 
     next();

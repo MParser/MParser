@@ -34,7 +34,7 @@ interface MemoryInfo {
 
 class RedisManager extends EventEmitter {
     private static instance: RedisManager;
-    private redis!: Redis;
+    public redis!: Redis;
     private readonly TASK_QUEUE_PREFIX = 'task_for_nds:';
     private readonly SCAN_LIST_PREFIX = "scan_for_nds:";
     private readonly TASK_UPDATE_QUEUE_PREFIX = "task_update_queue:";
@@ -42,6 +42,11 @@ class RedisManager extends EventEmitter {
     private reconnectAttempts = 0;
     private readonly maxReconnectAttempts = 20;
     public scanListMaxTimes: Map<string, Date> = new Map();
+    public redis_config = {}
+    
+    // 专用于阻塞操作的独立Redis连接
+    private blockingRedis: Redis | null = null;
+
     constructor() {
         super();
         if (!RedisManager.instance) {
@@ -52,11 +57,7 @@ class RedisManager extends EventEmitter {
     }
 
     private initialize(): void { 
-        this.initRedis(); 
-    }
-
-    private initRedis(): void {
-        const redis_config = {
+        this.redis_config = {
             host: config.get('redis.host', '127.0.0.1'),
             port: config.get('redis.port', 6379),
             password: config.get('redis.password', ''),
@@ -79,7 +80,7 @@ class RedisManager extends EventEmitter {
             keepAlive: 10000
         };
 
-        this.redis = new Redis(redis_config);
+        this.redis = new Redis(this.redis_config);
 
         // 在连接成功后设置最大内存和淘汰策略
         this.redis.on('connect', async () => {
@@ -105,6 +106,7 @@ class RedisManager extends EventEmitter {
 
         this._bindEvents();
     }
+
 
     private _bindEvents(): void {
         this.redis.on('connect', () => {
@@ -451,17 +453,41 @@ class RedisManager extends EventEmitter {
         }
     }
 
+    // 获取专用于阻塞操作的Redis连接
+    private getBlockingRedis(): Redis {
+        if (!this.blockingRedis) {
+            logger.info('创建专用于阻塞操作的Redis连接');
+            this.blockingRedis = new Redis(this.redis_config);
+            
+            // 添加事件监听
+            this.blockingRedis.on('error', (error: Error) => {
+                logger.error('阻塞Redis连接错误:', error);
+            });
+            
+            this.blockingRedis.on('close', () => {
+                logger.warn('阻塞Redis连接已关闭');
+                this.blockingRedis = null; // 连接关闭时重置为null，以便下次重新创建
+            });
+        }
+        return this.blockingRedis;
+    }
+
     // 读取一条任务更新队列数据，使用FIFO策略并阻塞式读取, 当队列为空时，会阻塞直到有数据
     public async readTaskUpdateQueue(): Promise<TaskUpdateItem | null> {
         try {
-            await this.ensureConnection();
-            const result = await this.redis.brpop(this.TASK_UPDATE_QUEUE_PREFIX, 0);
+            // 使用专用的阻塞连接，避免阻塞主连接
+            const blockingClient = this.getBlockingRedis();
+            
+            // 设置60秒超时，避免永久阻塞
+            const result = await blockingClient.brpop(this.TASK_UPDATE_QUEUE_PREFIX, 60);
+            
             if (!result) {
                 return null;
             }
             return JSON.parse(result[1]);
         } catch (error) {
             logger.error('读取任务更新队列失败:', error);
+            this.blockingRedis = null; // 出错时重置连接，以便下次重新创建
             return null;
         }
     }
