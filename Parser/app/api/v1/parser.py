@@ -1,23 +1,22 @@
-from fastapi import APIRouter
-from app.utils.server import Server, Gateway
-from app.core.logger import log
-import asyncio
+import copy
 import json
 import time
+import asyncio
+from fastapi import APIRouter
+from app.core.logger import log
 from aiomultiprocess import Pool
-from app.core.parse_lib import mro, mdt, ParseError
 from app.core.task_queue import TaskQueue
+from app.utils.server import Server, Gateway
 from clickhouse_driver import Client as CKClient
+from app.core.parse_lib import mro, mdt, ParseError
 
 api_router = APIRouter(tags=["Parser API"])
 log.info("Parser 模块加载完成")
 server = Server()
 task_queue: TaskQueue = None
 process_pool: Pool = None
-# 全局ClickHouse客户端
-clickhouse_client = None
-# ClickHouse操作锁，避免多个进程同时操作导致竞争
-clickhouse_lock = asyncio.Lock()
+clickhouse_client = None # 全局ClickHouse客户端
+clickhouse_lock = asyncio.Lock() # ClickHouse操作锁，避免多个进程同时操作导致竞争
 
 # 全局配置变量
 global_config = {
@@ -47,8 +46,6 @@ async def start_parser():
         global_config["database_info"] = database_info
         log.info(f"获取到数据库配置: {json.dumps(database_info, ensure_ascii=False)}")
         
-        
-        
         # 从parser_info中提取ndsLinks的ID列表
         nds_ids = []
         for link in parser_info.get("gateway", {}).get("ndsLinks", []):
@@ -57,7 +54,6 @@ async def start_parser():
         if not nds_ids:
             log.warning("没有发现任何NDS配置")
             return {"code": 400, "message": "没有发现任何NDS配置"}
-        
         
         # 初始化任务队列
         redis_config = database_info.get("redis", {})
@@ -78,8 +74,6 @@ async def start_parser():
         # 获取进程池大小
         pool_size = parser_info.get("pools", 5)
         log.info(f"进程池大小设置为: {pool_size}")
-        
-        
         
         # 初始化进程池
         process_pool = Pool(pool_size)
@@ -123,7 +117,6 @@ async def stop_parser():
     if not global_config["is_running"]:
         return {"code": 400, "message": "Parser服务未启动"}
     try:
-        
         # 关闭任务队列
         if task_queue:
             await task_queue.close()
@@ -140,9 +133,7 @@ async def stop_parser():
             clickhouse_client = None
             
         global_config["is_running"] = False
-        
         return {"code": 200, "message": "Parser服务已停止"}
-    
     except Exception as e:
         log.error(f"停止Parser服务失败: {str(e)}")
         return {"code": 500, "message": f"停止Parser服务失败: {str(e)}"}
@@ -160,7 +151,6 @@ async def process_tasks():
         
         while global_config["is_running"]:
             try:
-                
                 task_data = await task_queue.pop_task() # 从任务队列中获取任务, 当任务队列为空时会阻塞
                 if not task_data:
                     await asyncio.sleep(0.1)
@@ -171,17 +161,24 @@ async def process_tasks():
                 # 提取任务数据
                 nds_id = task_data.get("ndsId")
                 file_path = task_data.get("file_path")
-                file_hash = task_data.get("file_hash")
                 data_type = task_data.get("data_type", "").upper()  # MRO 或 MDT
                 
                 if not nds_id or not file_path or not data_type:
-            
                     log.warning(f"任务数据不完整: {json.dumps(task_data, ensure_ascii=False)}")
                     continue
                 
+                # 构建任务参数
+                task_params = {
+                    "task_data": task_data,
+                    "gateway_config": global_config["gateway_config"],
+                    "database_config": global_config["database_info"]
+                }
+                # 使用深度复制
+                task_params = copy.deepcopy(task_params)
+                
                 # 直接提交任务到进程池，在子进程中读取文件和处理数据
-                task = asyncio.create_task(process_in_pool(process_pool, nds_id, file_path, file_hash, data_type, global_config["gateway_config"], global_config["database_info"]))
-                tasks.append(task)
+                task = asyncio.create_task(process_in_pool(process_pool, task_params))
+                tasks.append(task)  
                 
                 # 清理已完成的任务
                 tasks = [t for t in tasks if not t.done()]
@@ -203,15 +200,133 @@ async def process_tasks():
         global_config["is_running"] = False
         return {"code": 200, "message": "Parser服务已停止"}
     
-async def process_in_pool(pool, nds_id, file_path, file_hash, data_type, gateway_config, database_config):
+async def insert_data_to_clickhouse(data, data_type, file_hash, file_path, database_config):
+    """
+    将解析后的数据插入到ClickHouse数据库
+    
+    :param data: 要插入的数据
+    :param data_type: 数据类型 (MRO 或 MDT)
+    :param file_hash: 文件哈希值
+    :param file_path: 文件路径
+    :param database_config: 数据库配置信息
+    :return: (bool, str) - 是否成功及错误信息
+    """
+    global clickhouse_client, clickhouse_lock, server
+    
+    # 使用锁确保同一时间只有一个进程访问ClickHouse
+    async with clickhouse_lock:
+        try:
+            # 检查ClickHouse连接是否有效，并在连接无效时重试
+            try:
+                if clickhouse_client:
+                    clickhouse_client.execute('SELECT 1')
+                else:
+                    raise Exception("ClickHouse客户端不存在")
+            except Exception as e:
+                log.warning(f"ClickHouse连接测试失败，尝试重新连接: {str(e)}")
+                # 重新初始化连接
+                ck_config = database_config.get("clickhouse", {})
+                if clickhouse_client:
+                    try:
+                        clickhouse_client.disconnect()
+                    except Exception:
+                        pass
+                clickhouse_client = CKClient(
+                    host=ck_config.get("host", "localhost"),
+                    port=ck_config.get("port", 9000),
+                    user=ck_config.get("user", "default"),
+                    password=ck_config.get("password", ""),
+                    database=ck_config.get("database", "default")
+                )
+                # 验证新连接
+                clickhouse_client.execute('SELECT 1')
+                log.info("ClickHouse重新连接成功")
+            
+            # ClickHouse插入设置
+            ck_settings = {
+                'max_insert_threads': 2,
+                'insert_distributed_sync': 0,
+                'async_insert': 1,
+                'wait_for_async_insert': 0
+            }
+            
+            # 保存数据到ClickHouse
+            if data_type == "MRO":
+                table_name = "LTE_MRO"
+                # 检查数据非空且格式正确
+                if data and len(data) > 0:
+                    try:
+                        # 获取列名
+                        columns = ", ".join(data[0].keys())
+                        # 构建SQL语句
+                        sql = f"INSERT INTO {table_name} ({columns}) VALUES"
+                        # 执行插入
+                        clickhouse_client.execute(sql, data, settings=ck_settings)
+                        log.info(f"成功插入MRO数据到ClickHouse，记录数: {len(data)}")
+                    except Exception as e:
+                        log.error(f"插入MRO数据出错: {str(e)}")
+                        raise  # 重新抛出异常，确保上层能够捕获并处理
+            
+            elif data_type == "MDT":
+                table_name = "LTE_MDT"
+                # 检查数据非空且格式正确
+                if data and len(data) > 0:
+                    try:
+                        # 获取列名
+                        columns = ", ".join(data[0].keys())
+                        # 构建SQL语句
+                        sql = f"INSERT INTO {table_name} ({columns}) VALUES"
+                        # 执行插入
+                        clickhouse_client.execute(sql, data, settings=ck_settings)
+                        log.info(f"成功插入MDT数据到ClickHouse，记录数: {len(data)}")
+                    except Exception as e:
+                        log.error(f"插入MDT数据出错: {str(e)}")
+                        raise  # 重新抛出异常，确保上层能够捕获并处理
+            
+            # 尝试更新任务状态为成功
+            try:
+                await server.task_update_status(file_hash, file_path, 2)
+                log.info(f"成功更新任务状态: file_hash={file_hash}, status=2(成功)")
+            except Exception as e:
+                log.error(f"更新任务状态失败: {str(e)}")
+                
+            return True, ""
+            
+        except Exception as e:
+            error_msg = f"ClickHouse操作失败: {str(e)}"
+            log.error(error_msg)
+            # 尝试更新任务状态为失败
+            try:
+                await server.task_update_status(file_hash, file_path, -2)
+                log.info(f"任务状态已更新为失败: file_hash={file_hash}, status=-2(失败)")
+            except Exception as update_err:
+                log.error(f"更新任务状态失败: {str(update_err)}")
+            # 重置连接，下次会重新创建
+            clickhouse_client = None
+            return False, error_msg
+
+async def process_in_pool(pool, task_params):
     """
     在进程池中处理任务
     """
     global clickhouse_client, clickhouse_lock, server
     
     try:
+        # 提取必要的变量
+        task_data = task_params["task_data"]
+        gateway_config = task_params["gateway_config"]
+        database_config = task_params["database_config"]
+        
+        nds_id = task_data.get("ndsId")
+        file_path = task_data.get("file_path")
+        file_hash = task_data.get("file_hash")
+        data_type = task_data.get("data_type", "").upper()
+        header_offset = task_data.get("header_offset", 0)
+        compress_size = task_data.get("compress_size")
+        
         # 将任务委托给进程池工作函数
-        result = await pool.apply(process_worker_task, (nds_id, file_path, data_type, gateway_config, file_hash))
+        process_params = (nds_id, file_path, data_type, gateway_config, file_hash, header_offset, compress_size)
+        result = await pool.apply(process_worker_task, process_params)
         
         if not result:
             log.warning(f"任务处理没有返回结果: nds_id={nds_id}, path={file_path}")
@@ -223,101 +338,21 @@ async def process_in_pool(pool, nds_id, file_path, file_hash, data_type, gateway
         error = result.get("error")
         processing_time = result.get("processing_time", 0)
         
-        if status == "success" and data:
-            # ClickHouse插入设置
-            ck_settings = {
-                'max_insert_threads': 2,
-                'insert_distributed_sync': 0,
-                'async_insert': 1,
-                'wait_for_async_insert': 0
-            }
+        # 处理任务结果
+        if status == "success":
+            # 将数据插入ClickHouse
+            if data:
+                success, error_msg = await insert_data_to_clickhouse(data, data_type, file_hash, file_path, database_config)
+            else:
+                await server.task_update_status(file_hash, file_path, 2)
+                success = True
             
-            # 使用锁确保同一时间只有一个进程访问ClickHouse
-            async with clickhouse_lock:
-                try:
-                    # 检查ClickHouse连接是否有效，并在连接无效时重试
-                    try:
-                        if clickhouse_client:
-                            clickhouse_client.execute('SELECT 1')
-                        else:
-                            raise Exception("ClickHouse客户端不存在")
-                    except Exception as e:
-                        log.warning(f"ClickHouse连接测试失败，尝试重新连接: {str(e)}")
-                        # 重新初始化连接
-                        ck_config = database_config.get("clickhouse", {})
-                        if clickhouse_client:
-                            try:
-                                clickhouse_client.disconnect()
-                            except Exception:
-                                pass
-                        clickhouse_client = CKClient(
-                            host=ck_config.get("host", "localhost"),
-                            port=ck_config.get("port", 9000),
-                            user=ck_config.get("user", "default"),
-                            password=ck_config.get("password", ""),
-                            database=ck_config.get("database", "default")
-                        )
-                        # 验证新连接
-                        clickhouse_client.execute('SELECT 1')
-                        log.info("ClickHouse重新连接成功")
-                    
-                    # 保存数据到ClickHouse
-                    if data_type == "MRO":
-                        table_name = "LTE_MRO"
-                        # 检查数据非空且格式正确
-                        if data and len(data) > 0:
-                            try:
-                                # 获取列名
-                                columns = ", ".join(data[0].keys())
-                                # 构建SQL语句
-                                sql = f"INSERT INTO {table_name} ({columns}) VALUES"
-                                # 执行插入
-                                clickhouse_client.execute(sql, data, settings=ck_settings)
-                                log.info(f"成功插入MRO数据到ClickHouse，记录数: {len(data)}")
-                            except Exception as e:
-                                log.error(f"插入MRO数据出错: {str(e)}")
-                                raise  # 重新抛出异常，确保上层能够捕获并处理
-                    
-                    elif data_type == "MDT":
-                        table_name = "LTE_MDT"
-                        # 检查数据非空且格式正确
-                        if data and len(data) > 0:
-                            try:
-                                # 获取列名
-                                columns = ", ".join(data[0].keys())
-                                # 构建SQL语句
-                                sql = f"INSERT INTO {table_name} ({columns}) VALUES"
-                                # 执行插入
-                                clickhouse_client.execute(sql, data, settings=ck_settings)
-                                log.info(f"成功插入MDT数据到ClickHouse，记录数: {len(data)}")
-                            except Exception as e:
-                                log.error(f"插入MDT数据出错: {str(e)}")
-                                raise  # 重新抛出异常，确保上层能够捕获并处理
-                    
-
-
-                    # 尝试更新任务状态为成功
-                    try:
-                        await server.task_update_status(file_hash, file_path, 2)
-                        log.info(f"成功更新任务状态: file_hash={file_hash}, status=2(成功)")
-                    except Exception as e:
-                        log.error(f"更新任务状态失败: {str(e)}")
-
-
-                except Exception as e:
-                    log.error(f"ClickHouse操作失败: {str(e)}")
-                    # 尝试更新任务状态为失败
-                    try:
-                        await server.task_update_status(file_hash, file_path, -2)
-                        log.info(f"任务状态已更新为失败: file_hash={file_hash}, status=-2(失败)")
-                    except Exception as update_err:
-                        log.error(f"更新任务状态失败: {str(update_err)}")
-                    # 重置连接，下次会重新创建
-                    clickhouse_client = None
-            
-            log.info(f"数据处理完成，类型: {data_type},结果尺寸: {len(data)},耗时: {processing_time:.2f}秒")
+            if success:
+                log.info(f"数据处理完成，类型: {data_type}, 结果尺寸: {len(data)}, 耗时: {processing_time:.2f}秒")
+            else:
+                log.error(f"数据插入失败: {error_msg}")
         
-        elif status == "error":
+        else:
             # 尝试更新任务状态为失败
             try:
                 await server.task_update_status(file_hash, file_path, -2)
@@ -337,7 +372,7 @@ async def process_in_pool(pool, nds_id, file_path, file_hash, data_type, gateway
             log.error(f"更新任务状态失败: {str(update_err)}")
 
 # 进程池工作函数，在子进程中执行
-async def process_worker_task(nds_id, file_path, data_type, gateway_config, file_hash=None):
+async def process_worker_task(nds_id, file_path, data_type, gateway_config, file_hash=None, header_offset=0, compress_size=None):
     """
     工作进程中的任务处理函数，负责获取数据和解析
     """
@@ -346,8 +381,8 @@ async def process_worker_task(nds_id, file_path, data_type, gateway_config, file
         # 在子进程中创建Gateway实例
         gateway = Gateway(gateway_config.get("host"), gateway_config.get("port"))
         
-        # 读取文件数据
-        file_data = await gateway.ws_read_file(nds_id, file_path)
+        # 读取文件数据，传入必要的header_offset和compress_size参数
+        file_data = await gateway.ws_read_file(nds_id, file_path, header_offset, compress_size)
         
         if not file_data:
             return {"status": "error", "error": f"读取文件失败: nds_id={nds_id}, path={file_path}" }
