@@ -356,7 +356,6 @@ async def process_in_pool(pool, task_params):
             # 尝试更新任务状态为失败
             try:
                 await server.task_update_status(file_hash, file_path, -2)
-                log.info(f"任务状态已更新为失败: file_hash={file_hash}, status=-2(失败)")
             except Exception as update_err:
                 log.error(f"更新任务状态失败: {str(update_err)}")
             log.error(f"任务处理失败: {error}")
@@ -400,6 +399,6 @@ async def process_worker_task(nds_id, file_path, data_type, gateway_config, file
         return {"status": "success", "data": result, "processing_time": processing_time}
         
     except ParseError as e:
-        return {"status": "error", "error": f"解析数据({file_hash})失败: {str(e)}", "processing_time": time.time() - start_time}
+        return {"status": "error", "error": f"解析{data_type}数据({file_hash})失败: {str(e)}", "processing_time": time.time() - start_time}
     except Exception as e:
-        return {"status": "error", "error": f"处理数据时发生未知错误: {str(e)}", "processing_time": time.time() - start_time}
+        return {"status": "error", "error": f"处理{data_type}数据时发生未知错误: {str(e)}", "processing_time": time.time() - start_time}
