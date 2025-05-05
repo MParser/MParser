@@ -143,6 +143,7 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
             'NC2Freq', 'NC2RSRP', 'NC2RSRQ', 'NC3PCI', 'NC3Freq', 'NC3RSRP', 'NC3RSRQ', 'NC4PCI', 'NC4Freq', 'NC4RSRP', 'NC4RSRQ',
             'NC5PCI', 'NC5Freq', 'NC5RSRP', 'NC5RSRQ'
         ]
+        
         # 定义默认值映射 - 为空字段提供默认值
         default_values = {
             'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1, 
