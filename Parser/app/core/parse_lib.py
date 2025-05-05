@@ -168,20 +168,38 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         df = df.fillna(default_values) # 使用默认值填充空字段
         df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S') # 添加DataTime列, 值为MeasAbsoluteTimeStamp向上取整(15分钟粒度)
         
-        # 添加 SCeNodeBID 和 CellID 字段 - 使用向量化操作
-        # 创建掩码，筛选出有效的Report CID
-        mask = df['Report CID'].apply(lambda x: isinstance(x, str) and len(x) > 4)
+        # 确保 Report CID 列的所有值都转换为字符串
+        df['Report CID'] = df['Report CID'].fillna('').astype(str)
         
         # 初始化新列，默认值为-1
         df['SCeNodeBID'] = -1
         df['CellID'] = -1
         
-        # 提取数值部分并转换为整数，直接进行计算
-        cid_values = df.loc[mask, 'Report CID'].str[4:].astype(int)
+        # 创建掩码，筛选出可能有效的 Report CID
+        base_mask = df['Report CID'].apply(lambda x: len(x) > 4 and x != 'nan' and x != '')
         
-        # 向量化计算SCeNodeBID和CellID
-        df.loc[mask, 'SCeNodeBID'] = cid_values // 256
-        df.loc[mask, 'CellID'] = cid_values % 256
+        if base_mask.any():
+            try:
+                # 向量化操作 - 提取数字部分
+                # 安全地提取子字符串并转换为数值
+                numeric_parts = df.loc[base_mask, 'Report CID'].str[4:]
+                
+                # 使用pd.to_numeric实现安全的数值转换，错误值转为NaN
+                cid_values = pd.to_numeric(numeric_parts, errors='coerce')
+                
+                # 创建有效值掩码（排除NaN值）
+                valid_mask = ~cid_values.isna()
+                
+                if valid_mask.any():
+                    # 只对有效的数值进行计算
+                    valid_indices = cid_values[valid_mask].index
+                    
+                    # 向量化计算SCeNodeBID和CellID
+                    df.loc[valid_indices, 'SCeNodeBID'] = (cid_values.loc[valid_indices] // 256).astype(int)
+                    df.loc[valid_indices, 'CellID'] = (cid_values.loc[valid_indices] % 256).astype(int)
+            except Exception as e:
+                # 捕获其他意外错误
+                print(f"处理 Report CID 时出错: {e}")
         
         result_dict = df.to_dict('records')
         result.append(result_dict)
