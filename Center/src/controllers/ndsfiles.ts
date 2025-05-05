@@ -7,6 +7,7 @@ import redis from '../database/redis'; // 添加redis导入
 import { extractTimeFromPath } from '../utils/Utils';
 import { taskManager } from '../database/taskdb';
 import { taskListMap, refreshAllMaps } from '../utils/tableMap';
+import mysql from '../database/mysql';
 
 
 // 定义NDSFileTask请求体接口
@@ -203,7 +204,7 @@ export class NDSFileController { // NDSFile任务控制类
         }
     }
 
-    private static async updateTask(file_hash: string, file_time: Date, status: number): Promise<boolean> {
+    public static async updateTask(file_hash: string, file_time: Date, status: number): Promise<boolean> {
         try {
             await taskManager.updateTask(file_hash, file_time, status);
             return true;
@@ -231,6 +232,66 @@ export class NDSFileController { // NDSFile任务控制类
         }
     }
 
+
+    public static async updateEnbTaskStatus(): Promise<void> {
+        logger.info('NDSFiles - 更新eNB任务状态线程已启动');
+        while (true) {
+            try {
+                // 获取扫描记录的最大时间
+                const max_time = await redis.getScanListMaxTimes();
+                
+                // 查询满足条件的记录：parsed=0, status=0, end_time < max_time
+                const pendingTasks = await mysql.enbTaskList.findMany({
+                    where: {
+                        AND: [
+                            { parsed: 0 },
+                            { status: 0 },
+                            { end_time: { lt: max_time } }
+                        ]
+                    },
+                    select: {
+                        id: true,
+                        enodebid: true,
+                        data_type: true,
+                        start_time: true,
+                        end_time: true
+                    }
+                });
+                
+                if (pendingTasks.length === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 300000));
+                    continue;
+                }
+                // 从nds_file_list中统计start_time <= file_time <= end_time, enodebid=enodebid, data_type=data_type的数据数量
+                // 如果数量为0则更新enbTaskList parsed=1
+                for (const task of pendingTasks) {
+                    try {
+                        const fileCount = await mysql.ndsFileList.count({
+                            where: {
+                                AND: [
+                                    { file_time: { gte: task.start_time } },
+                                    { file_time: { lte: task.end_time } },
+                                    { enodebid: task.enodebid },
+                                    { data_type: task.data_type }
+                                ]
+                            }
+                        });
+                        
+                        // 如果没有找到匹配的文件记录，则将任务标记为已解析
+                        if (fileCount === 0) await mysql.enbTaskList.update({ where: { id: task.id }, data: { parsed: 1 } });
+                    } catch (error) {
+                        logger.error(`处理 eNB[${task.enodebid}] 任务状态更新失败:`, error);
+                    }
+                }
+            } catch (error) {
+                logger.error('处理 eNB 任务状态更新失败:', error);
+            }
+
+            // 等待5分钟
+            await new Promise(resolve => setTimeout(resolve, 300000));
+        }
+    }
+    
     /**
      * 定时任务流程函数
      */
@@ -247,6 +308,8 @@ export class NDSFileController { // NDSFile任务控制类
         await new Promise(resolve => setTimeout(resolve, 2000));
         // 启动更新任务状态线程,不阻塞主线程
         this.updateTaskStatusThread().finally();
+        // 启动eNB任务状态更新线程
+        this.updateEnbTaskStatus().finally();
         // 启动定时任务
         setInterval(async () => { await this.scheduleTask(); }, this.TASK_CHECK_INTERVAL); 
         logger.info('NDSFiles - 定时任务已启动');

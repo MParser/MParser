@@ -38,6 +38,7 @@ class RedisManager extends EventEmitter {
     private readonly TASK_QUEUE_PREFIX = 'task_for_nds:';
     private readonly SCAN_LIST_PREFIX = "scan_for_nds:";
     private readonly TASK_UPDATE_QUEUE_PREFIX = "task_update_queue:";
+    private readonly SCAN_LIST_MAX_TIMES_KEY = "scan_list_max_times";
     private isConnected = false;
     private reconnectAttempts = 0;
     private readonly maxReconnectAttempts = 20;
@@ -102,6 +103,11 @@ class RedisManager extends EventEmitter {
             } catch (error) {
                 logger.error('Redis内存配置设置失败:', error);
             }
+        });
+
+        // 连接成功时从Redis恢复scanListMaxTimes
+        this.restoreScanListMaxTimes().catch(error => {
+            logger.error('从Redis恢复scanListMaxTimes失败:', error);
         });
 
         this._bindEvents();
@@ -215,16 +221,32 @@ class RedisManager extends EventEmitter {
 
 
     //更新扫描记录表的最大时间
-    private updateScanListMaxTime(ndsId: string | number, filePath: string): void {
-        const fileTime = extractTimeFromPath(filePath);
-        if (fileTime) {
-            const scanQueueKey = this.getScanListKey(ndsId);
-            const currentMaxTime = this.scanListMaxTimes.get(scanQueueKey) || new Date(0);
-            if (fileTime > currentMaxTime) this.scanListMaxTimes.set(scanQueueKey, fileTime);
+    public setScanListMaxTime(ndsId: string | number, filePath: string): void {
+        try {
+            // 检查参数类型
+            const path = typeof filePath === 'string' ? filePath : '';
+            if (!path) {
+                logger.error(`无效的文件路径: ${filePath}`);
+                return;
+            }
+
+            // 从文件路径提取时间
+            const scan_time = extractTimeFromPath(path);
+            if (!scan_time) {
+                logger.error(`无法从路径中提取时间: ${path}`);
+                return;
+            }
+
+            // 调用异步更新方法
+            this.updateScanListMaxTime(ndsId.toString(), scan_time).catch(error => {
+                logger.error(`更新扫描时间列表最大时间失败 [${ndsId}]:`, error);
+            });
+        } catch (error) {
+            logger.error(`更新扫描记录表的最大时间失败: ${error}`);
         }
     }
 
-    //批量插入已扫描文件清单
+    // 批量插入已扫描文件清单
     public async batchScanEnqueue(items: QueueItem[]): Promise<number[]> {
         try {
             await this.ensureConnection();
@@ -245,7 +267,7 @@ class RedisManager extends EventEmitter {
                 dataList.forEach(data => {
                     if (typeof data !== 'string') data = data.file_path; // 将对象转换为字符串
                     pipeline.sadd(scanQueueKey, data); // 使用SADD添加扫描文件记录表, 当记录已存在时不会重复添加
-                    this.updateScanListMaxTime(ndsId, data); // 更新最大时间映射
+                    this.setScanListMaxTime(ndsId, data); // 更新最大时间映射
                 });
             }
 
@@ -284,7 +306,7 @@ class RedisManager extends EventEmitter {
                     rpushCount++; // 增加rpush计数
                     pipeline.rpush(taskQueueKey, JSON.stringify(data));  // 使用 RPUSH, 新数据插入尾部
                     pipeline.sadd(scanQueueKey, data.file_path); // 使用SADD添加扫描文件记录表
-                    this.updateScanListMaxTime(ndsId, data.file_path); // 更新最大时间映射
+                    this.setScanListMaxTime(ndsId, data.file_path); // 更新最大时间映射
                 });
             }
 
@@ -492,6 +514,129 @@ class RedisManager extends EventEmitter {
         }
     }
 
+    // 获取scanmaxtime
+    public async getScanListMaxTimes(): Promise<Date> {
+        // 从 this.scanListMaxTimes 中获取最大的时间
+        try {
+            // 获取所有时间并转换为日期对象数组
+            const times: Date[] = [];
+            
+            // 使用 Map 的 API 来访问 scanListMaxTimes
+            for (const timeValue of this.scanListMaxTimes.values()) {
+                if (timeValue instanceof Date) {
+                    times.push(timeValue);
+                } else if (typeof timeValue === 'string') {
+                    times.push(new Date(timeValue));
+                }
+            }
+            
+            if (times.length === 0) return new Date(1997, 0, 1);
+            
+            // 对时间进行排序，降序（最新的在前面）
+            times.sort((a, b) => b.getTime() - a.getTime());
+            
+            // 如果 ndsid 数量大于5个，返回第二大的时间
+            if (this.scanListMaxTimes.size > 5 && times.length > 1) return times[1];
+            // 否则返回最大的时间
+            return times[0];
+        } catch (error) {
+            return new Date(1997, 0, 1);
+        }
+    }
+
+    // 保存scanListMaxTimes到Redis
+    public async saveScanListMaxTimes(): Promise<void> {
+        try {
+            if (!this.isConnected) {
+                logger.warn('Redis未连接，无法保存scanListMaxTimes');
+                return;
+            }
+
+            // 将Map转换为普通对象用于存储
+            const maxTimesObj: Record<string, string> = {};
+            for (const [key, value] of this.scanListMaxTimes.entries()) {
+                if (value instanceof Date) {
+                    maxTimesObj[key] = value.toISOString();
+                } else if (typeof value === 'string') {
+                    maxTimesObj[key] = value;
+                }
+            }
+
+            await this.redis.set(this.SCAN_LIST_MAX_TIMES_KEY, JSON.stringify(maxTimesObj));
+            logger.info('成功保存scanListMaxTimes到Redis');
+        } catch (error) {
+            logger.error('保存scanListMaxTimes到Redis失败:', error);
+        }
+    }
+
+    // 从Redis恢复scanListMaxTimes
+    public async restoreScanListMaxTimes(): Promise<void> {
+        try {
+            if (!this.isConnected) {
+                logger.warn('Redis未连接，无法恢复scanListMaxTimes');
+                return;
+            }
+
+            // 重置现有Map
+            this.scanListMaxTimes.clear();
+
+            const maxTimesStr = await this.redis.get(this.SCAN_LIST_MAX_TIMES_KEY);
+            if (!maxTimesStr) {
+                // Redis中没有数据，保持空Map即可，无需特别记录
+                return;
+            }
+
+            try {
+                const maxTimesObj = JSON.parse(maxTimesStr);
+                
+                // 将对象转回Map，并将字符串日期转为Date对象
+                for (const [key, value] of Object.entries(maxTimesObj)) {
+                    try {
+                        if (typeof value === 'string') {
+                            this.scanListMaxTimes.set(key, new Date(value));
+                        }
+                    } catch (parseError) {
+                        logger.warn(`解析scanListMaxTimes日期失败 [${key}:${value}]:`, parseError);
+                    }
+                }
+                
+                if (this.scanListMaxTimes.size > 0) {
+                    logger.info(`成功从Redis恢复scanListMaxTimes，共${this.scanListMaxTimes.size}条记录`);
+                }
+            } catch (parseError) {
+                logger.error('解析scanListMaxTimes JSON数据失败:', parseError);
+            }
+        } catch (error) {
+            logger.error('从Redis恢复scanListMaxTimes失败:', error);
+        }
+    }
+
+    // 更新扫描时间列表的最大时间并保存到Redis
+    public async updateScanListMaxTime(nds_id: string, scan_time: Date): Promise<void> {
+        try {
+            // 当前扫描时间是否比已存储的最大时间更晚
+            let shouldUpdate = false;
+
+            // 获取当前存储的最大时间
+            const currentMaxTime = this.scanListMaxTimes.get(nds_id);
+            
+            // 如果没有当前记录或新时间更大，则更新
+            if (!currentMaxTime || scan_time > currentMaxTime) {
+                this.scanListMaxTimes.set(nds_id, scan_time);
+                shouldUpdate = true;
+            }
+            
+            // 如果更新了scanListMaxTimes，则保存到Redis
+            if (shouldUpdate) {
+                await this.saveScanListMaxTimes();
+            }
+
+            return;
+        } catch (error) {
+            logger.error('更新扫描时间列表最大时间失败:', error);
+            return;
+        }
+    }
 }
 
 // 导出单例实例
