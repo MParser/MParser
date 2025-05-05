@@ -139,16 +139,21 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         result = []
         keep_fields = [
             'MeasAbsoluteTimeStamp', 'MME Group ID', 'MME Code', 'MME UE S1AP ID', 'Report CID', 'Report PCI', 'Report Freq', 'TR ID', 'TRSR ID', 'TCE ID',
-            'Longitude', 'LatitudeSign', 'Latitude', 'SC ID', 'SC PCI', 'SC Freq', 'SCRSRP', 'SCRSRQ'
+            'Longitude', 'Latitude', 'SC ID', 'SC PCI', 'SC Freq', 'SCRSRP', 'SCRSRQ','NC1PCI', 'NC1Freq', 'NC1RSRP', 'NC1RSRQ', 'NC2PCI', 
+            'NC2Freq', 'NC2RSRP', 'NC2RSRQ', 'NC3PCI', 'NC3Freq', 'NC3RSRP', 'NC3RSRQ', 'NC4PCI', 'NC4Freq', 'NC4RSRP', 'NC4RSRQ',
+            'NC5PCI', 'NC5Freq', 'NC5RSRP', 'NC5RSRQ'
         ]
         # 定义默认值映射 - 为空字段提供默认值
         default_values = {
-            'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1,
-            'Report CID': -1, 'Report PCI': -1, 'Report Freq': -1,
-            'TR ID': -1, 'TRSR ID': -1, 'TCE ID': -1,
-            'SC ID': -1, 'SC PCI': -1, 'SC Freq': -1,
-            'SCRSRP': -140, 'SCRSRQ': -20,
-            'LatitudeSign': -1
+            'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1, 
+            'Report CID': '', 'Report PCI': -1, 'Report Freq': -1, 
+            'TR ID': -1, 'TRSR ID': -1, 'TCE ID': -1, 'SC ID': -1, 
+            'SC PCI': -1, 'SC Freq': -1, 'SCRSRP': -140, 'SCRSRQ': -20,
+            'NC1PCI': -1, 'NC1Freq': -1, 'NC1RSRP': -140, 'NC1RSRQ': -20,
+            'NC2PCI': -1, 'NC2Freq': -1, 'NC2RSRP': -140, 'NC2RSRQ': -20,
+            'NC3PCI': -1, 'NC3Freq': -1, 'NC3RSRP': -140, 'NC3RSRQ': -20,
+            'NC4PCI': -1, 'NC4Freq': -1, 'NC4RSRP': -140, 'NC4RSRQ': -20,
+            'NC5PCI': -1, 'NC5Freq': -1, 'NC5RSRP': -140, 'NC5RSRQ': -20
         }
 
         df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
