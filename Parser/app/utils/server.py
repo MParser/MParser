@@ -34,7 +34,6 @@ class Server:
         
     async def get_parser_info(self):
         response = await self.server.get(f"parser/{config.get('app.id')}")
-        log.info(f"获取到Parser信息: {json.dumps(response, ensure_ascii=False)}")
         if response.get("code") == 200:
             return response.get("data")
         else:

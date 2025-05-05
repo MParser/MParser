@@ -101,6 +101,10 @@ class Scanner:
                         *[{'path': path, 'type': 'MRO'} for path in mro_new_files],
                         *[{'path': path, 'type': 'MDT'} for path in mdt_new_files]
                     ]
+                    
+                    # 根据文件名中的时间从远到近（从旧到新）排序
+                    new_files.sort(key=lambda x: self._extract_time(x['path']) or '0001-01-01 00:00:00')
+                    
                     logger.info(f"NDS[{nds_config.get('id')}] 扫描新文件数量: {len(new_files)}")
                     # 扫描新文件子包
                     nds_id = int(nds_config.get("id"))  # 提前获取ID
@@ -138,7 +142,6 @@ class Scanner:
                                     batch_data = []
                                     batch_size = 0
                                 
-                            
                             
                             # 添加新数据到批次
                             batch_data.extend(current_data)

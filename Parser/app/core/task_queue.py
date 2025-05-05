@@ -39,7 +39,8 @@ class TaskQueue:
     
     async def close(self):
         try:
-            await self.redis.close()
+            if self.redis:
+                await self.redis.close()
         except Exception as e:
             log.error(f"Close redis error:{e}")
     

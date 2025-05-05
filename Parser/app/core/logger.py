@@ -8,16 +8,25 @@ from app.core.config import config
 # 移除默认处理器
 logger.remove()
 
+# 自定义格式化函数，将模块名中的点替换为斜杠
+def format_path(record):
+    record["code_path"] = f'{record["name"].replace(".", "/")}:{record["line"]}'
+    return record
+
 # 日志格式
 log_format = (
     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
     "<level>{level: <8}</level> | "
-    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+    "<cyan>{code_path: <32}</cyan>| <cyan>{function: <16} </cyan> |"
     "<level>{message}</level>"
 )
 
 # 设置 asyncssh 日志级别为 WARNING，只显示警告和错误
 logging.getLogger('asyncssh').setLevel(logging.WARNING)
+
+# 设置 httpx 日志级别为 WARNING，隐藏正常请求日志
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 # 添加控制台处理器
 if config.get("log.console", True):
@@ -28,6 +37,7 @@ if config.get("log.console", True):
         colorize=True,
         backtrace=True,
         diagnose=True,
+        filter=format_path
     )
 
 # 确保日志目录存在
@@ -39,11 +49,12 @@ logger.add(
     config.get("log.file.path", "logs/app_{time}.log"),
     rotation=config.get("log.file.max_size", "10MB"),     # 按文件大小切割
     retention=int(config.get("log.file.backup_count", 5)),     # 保留文件数量
-    level=config.get("log.level", "INFO").upper(),               # 从配置文件获取日志级别
+    level=config.get("log.level", "INFO").upper(),        # 从配置文件获取日志级别
     format=log_format,                                    # 使用默认格式
-    encoding="utf-8",
-    enqueue=True,             # 启用队列模式，适合多进程
-    compression="zip",        # 压缩日志
+    filter=format_path,                                   # 应用格式化函数
+    encoding="utf-8",                                     # 使用UTF-8编码
+    enqueue=True,                                         # 启用队列模式，适合多进程
+    compression="zip"                                     # 压缩日志
 )
 
 async def websocket_handler(message):
