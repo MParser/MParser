@@ -101,3 +101,58 @@ GROUP BY
     b.MR_LteScLon,
     b.MR_LteScLat
 ;
+
+
+
+
+DROP TABLE IF EXISTS MParser.LTE_MDT_LocalTable ON CLUSTER 'mparsedb_cluster';
+CREATE TABLE IF NOT EXISTS MParser.LTE_MDT_LocalTable ON CLUSTER 'mparsedb_cluster'
+(
+    TimeStamp             DATETIME        DEFAULT now() CODEC (ZSTD(1)),
+    MeasAbsoluteTimeStamp String DEFAULT '' CODEC (ZSTD(1)),
+    DataTime              String DEFAULT '' CODEC (ZSTD(1)),
+    MME_Group_ID        Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    MME_Code            Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    MME_UE_S1AP_ID      Nullable(Int64) CODEC (Delta, ZSTD),
+    Report_CID          String DEFAULT '' CODEC (ZSTD(1)),
+    SCeNodeBID            Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    CellID                Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    Report_PCI          Int32 DEFAULT -1 CODEC (Delta, ZSTD(3)),
+    Report_Freq         Int32 DEFAULT -1 CODEC (Delta, ZSTD(3)),
+    TR_ID               Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    TRSR_ID             Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    TCE_ID              Int32 DEFAULT -1 CODEC (ZSTD(1)),
+    Longitude             Float64 CODEC (Delta, ZSTD),
+    Latitude              Float64 CODEC (Delta, ZSTD),
+    SC_ID               Int64 DEFAULT -1 CODEC (ZSTD(1)),
+    SC_PCI              Int32 DEFAULT -1 CODEC (Delta, ZSTD(3)),
+    SC_Freq             Int32 DEFAULT -1 CODEC (Delta, ZSTD(3)),
+    SCRSRP                Int32 DEFAULT -140 CODEC (Delta, ZSTD(3)),
+    SCRSRQ                Int32 DEFAULT -20 CODEC (Delta, ZSTD(3)),
+    NC1PCI                Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC1Freq               Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC1RSRP               Int32 DEFAULT -140 CODEC (ZSTD(3)),
+    NC1RSRQ               Int32 DEFAULT -20 CODEC (ZSTD(3)),
+    NC2PCI                Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC2Freq               Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC2RSRP               Int32 DEFAULT -140 CODEC (ZSTD(3)),
+    NC2RSRQ               Int32 DEFAULT -20 CODEC (ZSTD(3)),
+    NC3PCI                Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC3Freq               Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC3RSRP               Int32 DEFAULT -140 CODEC (ZSTD(3)),
+    NC3RSRQ               Int32 DEFAULT -20 CODEC (ZSTD(3)),
+    NC4PCI                Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC4Freq               Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC4RSRP               Int32 DEFAULT -140 CODEC (ZSTD(3)),
+    NC4RSRQ               Int32 DEFAULT -20 CODEC (ZSTD(3)),
+    NC5PCI                Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC5Freq               Int32 DEFAULT -1 CODEC (ZSTD(3)),
+    NC5RSRP               Int32 DEFAULT -140 CODEC (ZSTD(3)),
+    NC5RSRQ               Int32 DEFAULT -20 CODEC (ZSTD(3))
+)
+    ENGINE = MergeTree PARTITION BY toYYYYMMDD(TimeStamp) ORDER BY (TimeStamp, SCeNodeBID, CellID)
+    TTL TimeStamp + INTERVAL 3 MONTH DELETE; /*数据储存日期超3个月进行删除*/
+
+DROP TABLE IF EXISTS MParser.LTE_MDT ON CLUSTER 'mparsedb_cluster';
+CREATE TABLE IF NOT EXISTS MParser.LTE_MDT ON CLUSTER 'mparsedb_cluster' AS MParser.LTE_MDT_LocalTable
+    ENGINE  = Distributed('mparsedb_cluster', MParser, LTE_MDT_LocalTable, SCeNodeBID);

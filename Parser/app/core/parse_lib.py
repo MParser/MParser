@@ -201,6 +201,7 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
                 # 捕获其他意外错误
                 print(f"处理 Report CID 时出错: {e}")
         
+        df.columns = [col.replace(' ', '_') for col in df.columns]
         result_dict = df.to_dict('records')
         result.append(result_dict)
         import gc

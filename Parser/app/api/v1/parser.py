@@ -339,34 +339,28 @@ async def insert_data_to_clickhouse(data, data_type, file_hash, file_path, datab
             # 保存数据到ClickHouse
             if data_type == "MRO":
                 table_name = "LTE_MRO"
-                # 检查数据非空且格式正确
-                
-                if data and len(data) > 0:
-                    try:
-                        # 获取列名
-                        columns = ", ".join(data[0].keys())
-                        # 构建SQL语句
-                        sql = f"INSERT INTO {table_name} ({columns}) VALUES"
-                        # 执行插入
-                        clickhouse_client.execute(sql, data, settings=ck_settings)
-                    except Exception as e:
-                        log.error(f"插入MRO数据出错: {str(e)}")
-                        raise  # 重新抛出异常，确保上层能够捕获并处理
-            
             elif data_type == "MDT":
                 table_name = "LTE_MDT"
-                # 检查数据非空且格式正确
-                if data and len(data) > 0:
-                    try:
-                        # 获取列名
-                        columns = ", ".join(data[0].keys())
-                        # 构建SQL语句
-                        sql = f"INSERT INTO {table_name} ({columns}) VALUES"
-                        # 执行插入
-                        clickhouse_client.execute(sql, data, settings=ck_settings)
-                    except Exception as e:
-                        log.error(f"插入MDT数据出错: {str(e)}")
-                        raise  # 重新抛出异常，确保上层能够捕获并处理
+            else:
+                try:
+                    await server.task_update_status(file_hash, file_path, 2)
+                except Exception as e:
+                    log.error(f"更新任务状态失败: {str(e)}")
+                    
+                return True, ""
+    
+            if data and len(data) > 0:
+                try:
+                    # 获取列名
+                    columns = ", ".join([f"`{col}`" for col in data[0].keys()])
+                    # 构建SQL语句
+                    sql = f"INSERT INTO {table_name} ({columns}) VALUES"
+                    # 执行插入
+                    clickhouse_client.execute(sql, data, settings=ck_settings)
+                except Exception as e:
+                    log.error(f"插入MDT数据出错: {str(e)}")
+                    raise  # 重新抛出异常，确保上层能够捕获并处理
+            
             
             # 尝试更新任务状态为成功
             try:
