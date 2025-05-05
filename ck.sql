@@ -60,13 +60,13 @@ FROM
                  tuple(m.MR_LteScENBID, m.MR_LteScEarfcn, m.MR_LteScPci)) AS MR_LteScLat
      FROM MParser.LTE_MRO AS m
      WHERE
-         m.DataTime BETWEEN toDateTime('2025-01-12 00:00:00') AND toDateTime('2025-01-15 00:00:00')
+         m.DataTime BETWEEN toDateTime('2025-05-01 00:00:00') AND toDateTime('2025-05-15 00:00:00')
      GROUP BY
          m.MR_LteScENBID, m.MR_LteScEarfcn, m.MR_LteScPci,
          m.MR_LteNcEarfcn, m.MR_LteNcPci
  ) AS b
  -- 将按服务小区分组的子查询结果连接进来
- JOIN 
+ JOIN
  (
      SELECT
          m.MR_LteScENBID,
@@ -75,11 +75,11 @@ FROM
          sum(m.MR_LteScSPCount) AS MR_LteScSPCount
      FROM MParser.LTE_MRO AS m
      WHERE
-         m.DataTime BETWEEN toDateTime('2025-01-12 00:00:00') AND toDateTime('2025-01-15 00:00:00')
+         m.DataTime BETWEEN toDateTime('2025-05-01 00:00:00') AND toDateTime('2025-05-15 00:00:00')
      GROUP BY
          m.MR_LteScENBID, m.MR_LteScEarfcn, m.MR_LteScPci
- ) AS sc ON b.MR_LteScENBID = sc.MR_LteScENBID 
-        AND b.MR_LteScEarfcn = sc.MR_LteScEarfcn 
+ ) AS sc ON b.MR_LteScENBID = sc.MR_LteScENBID
+        AND b.MR_LteScEarfcn = sc.MR_LteScEarfcn
         AND b.MR_LteScPci = sc.MR_LteScPci
  LEFT JOIN MParser.CellDataDict AS c
  ON c.Earfcn = b.MR_LteNcEarfcn AND c.PCI = b.MR_LteNcPci
