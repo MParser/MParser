@@ -147,7 +147,7 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         # 定义默认值映射 - 为空字段提供默认值
         default_values = {
             'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1, 
-            'Report CID': '', 'Report PCI': -1, 'Report Freq': -1, 
+            'Report PCI': -1, 'Report Freq': -1, 
             'TR ID': -1, 'TRSR ID': -1, 'TCE ID': -1, 'SC ID': -1, 
             'SC PCI': -1, 'SC Freq': -1, 'SCRSRP': -140, 'SCRSRQ': -20,
             'NC1PCI': -1, 'NC1Freq': -1, 'NC1RSRP': -140, 'NC1RSRQ': -20,
@@ -158,7 +158,7 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         }
 
         df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
-        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
+        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Report CID'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
         if df.empty:
             return result # CSV文件为空
         df = df[keep_fields] # 筛选指定字段
@@ -167,6 +167,21 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         
         df = df.fillna(default_values) # 使用默认值填充空字段
         df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S') # 添加DataTime列, 值为MeasAbsoluteTimeStamp向上取整(15分钟粒度)
+        
+        # 添加 SCeNodeBID 和 CellID 字段 - 使用向量化操作
+        # 创建掩码，筛选出有效的Report CID
+        mask = df['Report CID'].apply(lambda x: isinstance(x, str) and len(x) > 4)
+        
+        # 初始化新列，默认值为-1
+        df['SCeNodeBID'] = -1
+        df['CellID'] = -1
+        
+        # 提取数值部分并转换为整数，直接进行计算
+        cid_values = df.loc[mask, 'Report CID'].str[4:].astype(int)
+        
+        # 向量化计算SCeNodeBID和CellID
+        df.loc[mask, 'SCeNodeBID'] = cid_values // 256
+        df.loc[mask, 'CellID'] = cid_values % 256
         
         result_dict = df.to_dict('records')
         result.append(result_dict)
