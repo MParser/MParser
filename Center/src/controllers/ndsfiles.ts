@@ -101,7 +101,7 @@ export class NDSFileController { // NDSFile任务控制类
                 if (!fileTime) return acc; // 如果无法提取时间信息，跳过
                 if (tasks.some(item => {  // 检查是否在任务时间范围内, 如果在任务时间范围内，加入结果
                     const fileTimeMs = fileTime.getTime();
-                    return fileTimeMs >= item.start_time.getTime() && fileTimeMs <= item.end_time.getTime();
+                    return fileTimeMs >= item.start_time.getTime() && fileTimeMs <= item.end_time.getTime() && item.data_type == data_type;
                 })) {acc.push(path);}
                 return acc;
             }, []);

@@ -100,15 +100,14 @@ class RedisManager extends EventEmitter {
                 const info = await this.redis.info('memory');
                 const used = parseInt(info.match(/used_memory:(\d+)/)?.[1] || '0');
                 logger.info(`Redis当前内存使用: ${(used / 1024 / 1024 / 1024).toFixed(2)}GG/${maxMemoryGB}GB`);
+                        // 连接成功时从Redis恢复scanListMaxTimes
+                await this.restoreScanListMaxTimes();
             } catch (error) {
                 logger.error('Redis内存配置设置失败:', error);
             }
         });
 
-        // 连接成功时从Redis恢复scanListMaxTimes
-        this.restoreScanListMaxTimes().catch(error => {
-            logger.error('从Redis恢复scanListMaxTimes失败:', error);
-        });
+
 
         this._bindEvents();
     }
@@ -548,7 +547,6 @@ class RedisManager extends EventEmitter {
     public async saveScanListMaxTimes(): Promise<void> {
         try {
             if (!this.isConnected) {
-                logger.warn('Redis未连接，无法保存scanListMaxTimes');
                 return;
             }
 
@@ -563,7 +561,6 @@ class RedisManager extends EventEmitter {
             }
 
             await this.redis.set(this.SCAN_LIST_MAX_TIMES_KEY, JSON.stringify(maxTimesObj));
-            logger.info('成功保存scanListMaxTimes到Redis');
         } catch (error) {
             logger.error('保存scanListMaxTimes到Redis失败:', error);
         }
@@ -572,10 +569,6 @@ class RedisManager extends EventEmitter {
     // 从Redis恢复scanListMaxTimes
     public async restoreScanListMaxTimes(): Promise<void> {
         try {
-            if (!this.isConnected) {
-                logger.warn('Redis未连接，无法恢复scanListMaxTimes');
-                return;
-            }
 
             // 重置现有Map
             this.scanListMaxTimes.clear();
