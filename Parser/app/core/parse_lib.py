@@ -222,3 +222,25 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         raise ParseError(data_type="MDT", error_type="KeyError", message=f"Missing Key: {str(e)}")
     except Exception as e:
         raise ParseError(data_type="MDT", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
+
+
+def mdt_debug(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
+    try:
+        # 读取CSV文件 - 避免不必要的数据复制
+        if isinstance(data, bytes):
+            csv_data = BytesIO(data)
+        elif isinstance(data, BytesIO):
+            csv_data = data
+        df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
+        df.columns = [col.replace(' ', '_') for col in df.columns]
+        
+        
+        
+    except pd.errors.ParserError as e:
+        raise ParseError(data_type="MDT", error_type="CSVParserError", message=f"CSV Parser Error: {str(e)}")
+    except ValueError as e:
+        raise ParseError(data_type="MDT", error_type="ValueError", message=f"Value Error: {str(e)}")
+    except KeyError as e:
+        raise ParseError(data_type="MDT", error_type="KeyError", message=f"Missing Key: {str(e)}")
+    except Exception as e:
+        raise ParseError(data_type="MDT", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
