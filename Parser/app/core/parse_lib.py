@@ -231,11 +231,70 @@ def mdt_debug(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
             csv_data = BytesIO(data)
         elif isinstance(data, BytesIO):
             csv_data = data
-        df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
-        df.columns = [col.replace(' ', '_') for col in df.columns]
+        df = pd.read_csv(
+            csv_data, 
+            encoding='gbk', 
+            header=1, 
+            on_bad_lines='skip', 
+            index_col=False,
+            na_values=['', 'N/A', 'NA', 'NULL', 'null', '#N/A', '#N/A N/A']
+        )
+        df.columns = [col.replace(' ', '_') for col in df.columns]  # 确保列名没有空格
+        keep_fields = [
+            'MeasAbsoluteTimeStamp', 'MME_Group_ID', 'MME_Code', 'MME_UE_S1AP_ID', 'Report_CID', 'Report_PCI', 'Report_Freq', 'TR_ID', 'TRSR_ID', 'TCE_ID',
+            'Longitude', 'Latitude', 'SC_ID', 'SC_PCI', 'SC_Freq', 'SCRSRP', 'SCRSRQ','NC1PCI', 'NC1Freq', 'NC1RSRP', 'NC1RSRQ', 'NC2PCI', 
+            'NC2Freq', 'NC2RSRP', 'NC2RSRQ', 'NC3PCI', 'NC3Freq', 'NC3RSRP', 'NC3RSRQ', 'NC4PCI', 'NC4Freq', 'NC4RSRP', 'NC4RSRQ',
+            'NC5PCI', 'NC5Freq', 'NC5RSRP', 'NC5RSRQ'
+        ]
+        default_values = {
+            'MME_Group_ID': -1, 'MME_Code': -1, 'MME_UE_S1AP_ID': -1, 
+            'TR_ID': -1, 'TRSR_ID': -1, 'TCE_ID': -1, 'SC_ID': -1, 
+            'SC_PCI': -1, 'SC_Freq': -1, 'SCRSRP': -140, 'SCRSRQ': -20,
+            'NC1PCI': -1, 'NC1Freq': -1, 'NC1RSRP': -140, 'NC1RSRQ': -20,
+            'NC2PCI': -1, 'NC2Freq': -1, 'NC2RSRP': -140, 'NC2RSRQ': -20,
+            'NC3PCI': -1, 'NC3Freq': -1, 'NC3RSRP': -140, 'NC3RSRQ': -20,
+            'NC4PCI': -1, 'NC4Freq': -1, 'NC4RSRP': -140, 'NC4RSRQ': -20,
+            'NC5PCI': -1, 'NC5Freq': -1, 'NC5RSRP': -140, 'NC5RSRQ': -20
+        }
+        df = df[keep_fields]  # 筛选指定字段
+        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Report_CID'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
+        if df.empty:
+            return []
         
+        # 转换时间戳并处理数值列
+        df['MeasAbsoluteTimeStamp'] = pd.to_datetime(df['MeasAbsoluteTimeStamp'], format='%Y-%m-%dT%H:%M:%S.%f').dt.strftime('%Y-%m-%d %H:%M:%S')
+        df = df[df['MeasAbsoluteTimeStamp'].notna()]
         
+        # 转换数值列并过滤无效数据
+        for col in ['Report_CID', 'Report_PCI', 'Report_Freq']:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df = df[df[col].notna()]
         
+        # 额外过滤Report_CID的有效值
+        df = df[df['Report_CID'] >= 1000000]
+        
+        # 计算SCeNodeBID和CellID
+        cid_str = df['Report_CID'].astype(str).str[5:].astype(int)
+        df['SCeNodeBID'] = (cid_str // 256).astype(int)
+        df['CellID'] = (cid_str % 256).astype(int)
+        
+        # 过滤有效的SCeNodeBID和CellID
+        df = df[(df['SCeNodeBID'] >= 1000) & (df['CellID'] >= 0)]
+        df = df.fillna(default_values) # 使用默认值填充空字段
+        df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S')
+        df = df[df['DateTime'].notna()]
+        result_dict = df.to_dict('records')
+        result.append(result_dict)
+        import gc
+        del df
+        gc.collect()
+        
+        # 将嵌套列表扁平化为单一列表
+        flat_result = []
+        for batch in result:
+            flat_result.extend(batch)
+        
+        return flat_result  # 返回扁平化后的列表
     except pd.errors.ParserError as e:
         raise ParseError(data_type="MDT", error_type="CSVParserError", message=f"CSV Parser Error: {str(e)}")
     except ValueError as e:
