@@ -4,7 +4,6 @@ import re
 import asyncio
 from datetime import datetime
 
-from loguru import logger
 from app.core.logger import log
 from app.utils.server import Server, Gateway
 
@@ -63,7 +62,7 @@ class Scanner:
             await server.info()
             
             gateway = Gateway(self.gateway, f"Scanner-NDS-{nds_config.get('id')}")
-            logger.info(f"Scanner thread[{nds_config.get('id')}] started.")
+            log.info(f"Scanner thread[{nds_config.get('id')}] started.")
             
             # 更新任务状态
             nds_id = nds_config.get('id')
@@ -86,14 +85,14 @@ class Scanner:
                     if mro_files_nds.code == 200:
                         mro_new_files = await server.ndsfile_filter_files(nds_config.get("id"), "MRO", mro_files_nds.data)
                     else:
-                        logger.warning(f"Scanner thread[{nds_config.get('id')}] scan mro error: {mro_files_nds}")
+                        log.warning(f"Scanner thread[{nds_config.get('id')}] scan mro error: {mro_files_nds}")
                     
                     mdt_files_nds = await gateway.scan_nds(nds_config.get("id"), nds_config.get("MDT_Path"), nds_config.get("MDT_Filter"))
                     
                     if mdt_files_nds.code == 200:
                         mdt_new_files = await server.ndsfile_filter_files(nds_config.get("id"), "MDT", mdt_files_nds.data)
                     else:
-                        logger.warning(f"Scanner thread[{nds_config.get('id')}] scan mdt error: {mdt_files_nds}")
+                        log.warning(f"Scanner thread[{nds_config.get('id')}] scan mdt error: {mdt_files_nds}")
                     
                     
                     # 合并新文件并保留类型信息
@@ -105,7 +104,7 @@ class Scanner:
                     # 根据文件名中的时间从远到近（从旧到新）排序
                     new_files.sort(key=lambda x: self._extract_time(x['path']) or '0001-01-01 00:00:00')
                     
-                    logger.info(f"NDS[{nds_config.get('id')}] 扫描新文件数量: {len(new_files)}")
+                    log.info(f"NDS[{nds_config.get('id')}] 扫描新文件数量: {len(new_files)}")
                     # 扫描新文件子包
                     nds_id = int(nds_config.get("id"))  # 提前获取ID
                     batch_data = []  # 存储待处理的数据
@@ -114,7 +113,7 @@ class Scanner:
                     
                     for file in new_files:
                         data = await gateway.zip_info(nds=nds_config.get("id"), path=file['path'])
-                        logger.info(f"扫描NDS[{nds_id}]子包文件: {file['path']}")
+                        log.info(f"扫描NDS[{nds_id}]子包文件: {file['path']}")
                         if data.code == 200:
                             # 批量添加ndsId和data_type
                             current_data = [{**item, 'ndsId': nds_id, 'data_type': file['type']} for item in data.data]
@@ -167,7 +166,7 @@ class Scanner:
                 end_time = datetime.now()
                 elapsed_time = (end_time - start_time).total_seconds()
                 interval = max(self.min_interval, self.max_interval - elapsed_time)
-                logger.info(f"下次扫描倒计时: {interval}秒")
+                log.info(f"下次扫描倒计时: {interval}秒")
                 
                 # 使用循环检查stopping标志，而不是简单的睡眠
                 sleep_start = datetime.now().timestamp()
@@ -180,12 +179,12 @@ class Scanner:
             if gateway and await gateway.is_connected():
                 try:
                     await gateway.disconnect()
-                    logger.info(f"Scanner thread[{nds_config.get('id')}] 已断开网关连接")
+                    log.info(f"Scanner thread[{nds_config.get('id')}] 已断开网关连接")
                 except Exception as e:
-                    logger.error(f"断开网关连接失败: {str(e)}")
+                    log.error(f"断开网关连接失败: {str(e)}")
         
         except Exception as e:
-            logger.error(f"扫描器运行失败: {str(e)}")
+            log.error(f"扫描器运行失败: {str(e)}")
             if str(nds_id) in self._status["tasks"]:
                 self._status["tasks"][str(nds_id)]["running"] = False
                 self._status["tasks"][str(nds_id)]["error"] = str(e)
@@ -243,7 +242,7 @@ class Scanner:
                 
             return "扫描器启动成功"
         except Exception as e:
-            logger.error(f"扫描器启动失败: {str(e)}")
+            log.error(f"扫描器启动失败: {str(e)}")
             self.running = False
             self._status["running"] = False
             self._status["error"] = str(e)
@@ -257,7 +256,7 @@ class Scanner:
         if self.stopping:
             raise ValueError("扫描器正在停止中") 
             
-        logger.info("正在停止扫描器...")
+        log.info("正在停止扫描器...")
         self.stopping = True
         self._status["stopping"] = True
         
@@ -270,9 +269,9 @@ class Scanner:
                         # 设置超时时间为10秒
                         await asyncio.wait_for(asyncio.shield(task), timeout=10)
                     except asyncio.TimeoutError:
-                        logger.warning(f"任务{task_id}停止超时，强制取消")
+                        log.warning(f"任务{task_id}停止超时，强制取消")
                     except Exception as e:
-                        logger.error(f"停止任务{task_id}时出错: {str(e)}")
+                        log.error(f"停止任务{task_id}时出错: {str(e)}")
             
             # 确保任务完成后才清理资源
             for task_id, task in self._tasks.items():
@@ -280,7 +279,7 @@ class Scanner:
                     if not task.done():
                         task.cancel()
                 except Exception as e:
-                    logger.error(f"取消任务{task_id}时出错: {str(e)}")
+                    log.error(f"取消任务{task_id}时出错: {str(e)}")
             
             # 清理状态
             self._tasks = {}
@@ -289,10 +288,10 @@ class Scanner:
             self._status["running"] = False
             self._status["stopping"] = False
             
-            logger.info("扫描器已停止")
+            log.info("扫描器已停止")
             return "扫描器已停止"
         except Exception as e:
-            logger.error(f"停止扫描器时出错: {str(e)}")
+            log.error(f"停止扫描器时出错: {str(e)}")
             # 确保即使出错也会更新状态
             self.running = False
             self.stopping = False

@@ -75,8 +75,12 @@ class TaskQueue:
                     await self._adjust_queue_order(queue_name)
                     return task_data
                 return None
+            
         except Exception as e:
-            log.error(f"Error during task popping: {e}")
+            if "Timeout reading from" not in str(e):
+                log.error(f"Error during task popping: {e}")
+            else:
+                log.info("waiting tasks...")
             await asyncio.sleep(1)
             return None
     

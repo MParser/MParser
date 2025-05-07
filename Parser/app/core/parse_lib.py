@@ -1,8 +1,11 @@
+
+from app.core.logger import log
 import pandas as pd
 from io import BytesIO
 from lxml import etree
 from typing import Dict, List, Union
-
+import os
+from datetime import datetime
 
 class ParseError(Exception):
 
@@ -136,101 +139,6 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
             csv_data = BytesIO(data)
         elif isinstance(data, BytesIO):
             csv_data = data
-        result = []
-        keep_fields = [
-            'MeasAbsoluteTimeStamp', 'MME Group ID', 'MME Code', 'MME UE S1AP ID', 'Report CID', 'Report PCI', 'Report Freq', 'TR ID', 'TRSR ID', 'TCE ID',
-            'Longitude', 'Latitude', 'SC ID', 'SC PCI', 'SC Freq', 'SCRSRP', 'SCRSRQ','NC1PCI', 'NC1Freq', 'NC1RSRP', 'NC1RSRQ', 'NC2PCI', 
-            'NC2Freq', 'NC2RSRP', 'NC2RSRQ', 'NC3PCI', 'NC3Freq', 'NC3RSRP', 'NC3RSRQ', 'NC4PCI', 'NC4Freq', 'NC4RSRP', 'NC4RSRQ',
-            'NC5PCI', 'NC5Freq', 'NC5RSRP', 'NC5RSRQ'
-        ]
-        
-        # 定义默认值映射 - 为空字段提供默认值
-        default_values = {
-            'MME Group ID': -1, 'MME Code': -1, 'MME UE S1AP ID': -1, 
-            'Report PCI': -1, 'Report Freq': -1, 
-            'TR ID': -1, 'TRSR ID': -1, 'TCE ID': -1, 'SC ID': -1, 
-            'SC PCI': -1, 'SC Freq': -1, 'SCRSRP': -140, 'SCRSRQ': -20,
-            'NC1PCI': -1, 'NC1Freq': -1, 'NC1RSRP': -140, 'NC1RSRQ': -20,
-            'NC2PCI': -1, 'NC2Freq': -1, 'NC2RSRP': -140, 'NC2RSRQ': -20,
-            'NC3PCI': -1, 'NC3Freq': -1, 'NC3RSRP': -140, 'NC3RSRQ': -20,
-            'NC4PCI': -1, 'NC4Freq': -1, 'NC4RSRP': -140, 'NC4RSRQ': -20,
-            'NC5PCI': -1, 'NC5Freq': -1, 'NC5RSRP': -140, 'NC5RSRQ': -20
-        }
-
-        df = pd.read_csv(csv_data, encoding='gbk', header=1, on_bad_lines='skip', index_col=False)
-        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Report CID'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
-        if df.empty:
-            return result # CSV文件为空
-        df = df[keep_fields] # 筛选指定字段
-        # 将MeasAbsoluteTimeStamp转为日期时间格式
-        df['MeasAbsoluteTimeStamp'] = pd.to_datetime(df['MeasAbsoluteTimeStamp'], format='%Y-%m-%dT%H:%M:%S.%f').dt.strftime('%Y-%m-%d %H:%M:%S')
-        
-        df = df.fillna(default_values) # 使用默认值填充空字段
-        df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S') # 添加DataTime列, 值为MeasAbsoluteTimeStamp向上取整(15分钟粒度)
-        
-        # 确保 Report CID 列的所有值都转换为字符串
-        df['Report CID'] = df['Report CID'].fillna('').astype(str)
-        
-        # 初始化新列，默认值为-1
-        df['SCeNodeBID'] = -1
-        df['CellID'] = -1
-        
-        # 创建掩码，筛选出可能有效的 Report CID
-        base_mask = df['Report CID'].apply(lambda x: len(x) > 4 and x != 'nan' and x != '')
-        
-        if base_mask.any():
-            try:
-                # 向量化操作 - 提取数字部分
-                # 安全地提取子字符串并转换为数值
-                numeric_parts = df.loc[base_mask, 'Report CID'].str[4:]
-                
-                # 使用pd.to_numeric实现安全的数值转换，错误值转为NaN
-                cid_values = pd.to_numeric(numeric_parts, errors='coerce')
-                
-                # 创建有效值掩码（排除NaN值）
-                valid_mask = ~cid_values.isna()
-                
-                if valid_mask.any():
-                    # 只对有效的数值进行计算
-                    valid_indices = cid_values[valid_mask].index
-                    
-                    # 向量化计算SCeNodeBID和CellID
-                    df.loc[valid_indices, 'SCeNodeBID'] = (cid_values.loc[valid_indices] // 256).astype(int)
-                    df.loc[valid_indices, 'CellID'] = (cid_values.loc[valid_indices] % 256).astype(int)
-            except Exception as e:
-                # 捕获其他意外错误
-                print(f"处理 Report CID 时出错: {e}")
-        
-        df.columns = [col.replace(' ', '_') for col in df.columns]
-        result_dict = df.to_dict('records')
-        result.append(result_dict)
-        import gc
-        del df
-        gc.collect()
-        
-        # 将嵌套列表扁平化为单一列表
-        flat_result = []
-        for batch in result:
-            flat_result.extend(batch)
-        
-        return flat_result  # 返回扁平化后的列表
-    except pd.errors.ParserError as e:
-        raise ParseError(data_type="MDT", error_type="CSVParserError", message=f"CSV Parser Error: {str(e)}")
-    except ValueError as e:
-        raise ParseError(data_type="MDT", error_type="ValueError", message=f"Value Error: {str(e)}")
-    except KeyError as e:
-        raise ParseError(data_type="MDT", error_type="KeyError", message=f"Missing Key: {str(e)}")
-    except Exception as e:
-        raise ParseError(data_type="MDT", error_type="UnexpectedError", message=f"Unexpected Error: {str(e)}")
-
-
-def mdt_debug(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
-    try:
-        # 读取CSV文件 - 避免不必要的数据复制
-        if isinstance(data, bytes):
-            csv_data = BytesIO(data)
-        elif isinstance(data, BytesIO):
-            csv_data = data
         df = pd.read_csv(
             csv_data, 
             encoding='gbk', 
@@ -256,13 +164,46 @@ def mdt_debug(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
             'NC4PCI': -1, 'NC4Freq': -1, 'NC4RSRP': -140, 'NC4RSRQ': -20,
             'NC5PCI': -1, 'NC5Freq': -1, 'NC5RSRP': -140, 'NC5RSRQ': -20
         }
-        df = df[keep_fields]  # 筛选指定字段
-        df = df[df['MeasAbsoluteTimeStamp'].notna() & df['Report_CID'].notna() & df['Longitude'].notna() & df['Latitude'].notna()]
+        # 检查必要字段是否存在
+        required_fields = [
+            'MeasAbsoluteTimeStamp', 'MME_Group_ID', 'MME_Code', 'MME_UE_S1AP_ID', 
+            'Report_CID', 'Report_PCI', 'Report_Freq', 'TR_ID', 'TRSR_ID', 'TCE_ID',
+            'Longitude', 'Latitude', 'SC_ID', 'SC_PCI', 'SC_Freq', 'SCRSRP', 'SCRSRQ'
+        ]
+        missing_fields = [field for field in required_fields if field not in df.columns]
+        if missing_fields:
+            # 如果缺失非NC开头的必要字段，直接返回空数据
+            log.warning('无效MDT数据，缺失关键字段')
+            return []
+            
+        
+        # 检查keep_fields中缺失的字段并一次性添加
+        missing_fields = {field: default_values[field] for field in keep_fields if field not in df.columns and field in default_values}
+        if missing_fields:
+            df = df.assign(**missing_fields)
+        
+        # 筛选指定字段
+        df = df[keep_fields]
+        
+        # 过滤空值
+        df = df[
+            df['MeasAbsoluteTimeStamp'].notna() & 
+            df['Report_CID'].notna() & 
+            df['Longitude'].notna() & 
+            df['Latitude'].notna() &
+            df['SC_PCI'].notna() &
+            df['SC_Freq'].notna() &
+            df['SCRSRP'].notna()
+            
+        ]
         if df.empty:
+            import gc
+            del df
+            gc.collect()
             return []
         
         # 转换时间戳并处理数值列
-        df['MeasAbsoluteTimeStamp'] = pd.to_datetime(df['MeasAbsoluteTimeStamp'], format='%Y-%m-%dT%H:%M:%S.%f').dt.strftime('%Y-%m-%d %H:%M:%S')
+        df['MeasAbsoluteTimeStamp'] = pd.to_datetime(df['MeasAbsoluteTimeStamp'], format='%Y-%m-%dT%H:%M:%S.%f')
         df = df[df['MeasAbsoluteTimeStamp'].notna()]
         
         # 转换数值列并过滤无效数据
@@ -281,10 +222,28 @@ def mdt_debug(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         # 过滤有效的SCeNodeBID和CellID
         df = df[(df['SCeNodeBID'] >= 1000) & (df['CellID'] >= 0)]
         df = df.fillna(default_values) # 使用默认值填充空字段
-        df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min').dt.strftime('%Y-%m-%d %H:%M:%S')
-        df = df[df['DateTime'].notna()]
+        df['DataTime'] = pd.to_datetime(df['MeasAbsoluteTimeStamp']).dt.ceil('15min')
+        df = df[df['DataTime'].notna()]
+        
+        
+        # 构建类型映射字典
+        dtypes = {col: 'int32' for col in ['SC_PCI', 'SC_Freq', 'MME_Group_ID', 'MME_Code', 
+                'TR_ID', 'TRSR_ID', 'TCE_ID', 'Report_PCI', 'Report_Freq', 'SCeNodeBID', 'CellID',
+                'NC1PCI', 'NC1Freq', 'NC1RSRP', 'NC1RSRQ',
+                'NC2PCI', 'NC2Freq', 'NC2RSRP', 'NC2RSRQ',
+                'NC3PCI', 'NC3Freq', 'NC3RSRP', 'NC3RSRQ',
+                'NC4PCI', 'NC4Freq', 'NC4RSRP', 'NC4RSRQ',
+                'NC5PCI', 'NC5Freq', 'NC5RSRP', 'NC5RSRQ'] if col in df.columns}
+
+        # 添加int64类型的列
+        dtypes.update({col: 'int64' for col in ['SC_ID', 'MME_UE_S1AP_ID', 'Report_CID'] if col in df.columns})
+
+        # 一次性应用所有类型转换
+        df = df.astype(dtypes)
+        
+        
         result_dict = df.to_dict('records')
-        result.append(result_dict)
+        result = [result_dict]
         import gc
         del df
         gc.collect()

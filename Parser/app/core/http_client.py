@@ -1,6 +1,6 @@
 import httpx
 from dataclasses import dataclass
-from app.core.logger import logger
+from app.core.logger import log as logger
 from typing import Optional, Dict, Any, Union
 
 @dataclass
