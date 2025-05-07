@@ -174,9 +174,11 @@ def mdt(data: BytesIO | bytes) -> List[Dict[str, Union[str, int, float]]]:
         if missing_fields:
             # 如果缺失非NC开头的必要字段，直接返回空数据
             log.warning('无效MDT数据，缺失关键字段')
+            import gc
+            del df
+            gc.collect()
             return []
             
-        
         # 检查keep_fields中缺失的字段并一次性添加
         missing_fields = {field: default_values[field] for field in keep_fields if field not in df.columns and field in default_values}
         if missing_fields:
