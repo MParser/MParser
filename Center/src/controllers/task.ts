@@ -129,8 +129,7 @@ export class TaskController {
                         enodebid: enodebid,
                         data_type: data.data_type,
                         start_time: new Date(data.start_time),
-                        end_time: new Date(data.end_time),
-                        trigger_check: 0  // 新任务需要触发检查
+                        end_time: new Date(data.end_time)
                     }))
                 });
 
@@ -217,7 +216,6 @@ export class TaskController {
                         enodebid: taskInfo.enodebid,
                         start_time: taskInfo.start_time,
                         end_time: taskInfo.end_time,
-                        trigger_check: taskInfo.trigger_check
                     }
                 }, '在指定时间范围内存在任务');
             } else {

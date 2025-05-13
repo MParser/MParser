@@ -4,8 +4,6 @@ import pandas as pd
 from io import BytesIO
 from lxml import etree
 from typing import Dict, List, Union
-import os
-from datetime import datetime
 
 class ParseError(Exception):
 

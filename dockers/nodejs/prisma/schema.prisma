@@ -159,7 +159,6 @@ model enbTaskList {
   end_time    DateTime @db.DateTime
   parsed      Int      @default(0) // 解析状态 0未完成 1已完成
   status      Int      @default(0) // 状态 0未处理 1完成
-  trigger_check Int      @default(0) // 是否需要触发检查，0需要，1不需要
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -167,7 +166,6 @@ model enbTaskList {
   @@index([enodebid])
   @@index([parsed])
   @@index([status])
-  @@index([trigger_check])
   @@index([enodebid, data_type, parsed, status], name: "idx_enb_task_composite")
   @@map("enb_task_list")
 }

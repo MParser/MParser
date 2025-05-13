@@ -25,7 +25,6 @@ interface EnbTaskInfo {
     end_time: Date;
     parsed: number;
     status: number;
-    trigger_check: number;
 }
 
 export class TaskListMap {
@@ -135,7 +134,7 @@ export class EnbTaskListMap {
 
             // 查询所有未完成任务
             const tasks = await mysql.enbTaskList.findMany({
-                select: { id: true, taskId: true, enodebid: true, data_type: true, start_time: true, end_time: true, parsed: true, status: true, trigger_check: true },
+                select: { id: true, taskId: true, enodebid: true, data_type: true, start_time: true, end_time: true, parsed: true, status: true },
                 where: { parsed: 0, status: 0 }
             });
 
@@ -152,8 +151,7 @@ export class EnbTaskListMap {
                     start_time: task.start_time,
                     end_time: task.end_time,
                     parsed: task.parsed,
-                    status: task.status,
-                    trigger_check: task.trigger_check
+                    status: task.status
                 });
             }
 

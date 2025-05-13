@@ -310,6 +310,8 @@ export class NDSFileController { // NDSFile任务控制类
         this.updateTaskStatusThread().finally();
         // 启动eNB任务状态更新线程
         this.updateEnbTaskStatus().finally();
+        // 启动内存任务扫描
+        taskManager.processUnhandledTasks().finally();
         // 启动定时任务
         setInterval(async () => { await this.scheduleTask(); }, this.TASK_CHECK_INTERVAL); 
         logger.info('NDSFiles - 定时任务已启动');

@@ -141,7 +141,7 @@ model taskList {
   data_type String   @db.VarChar(20) // 任务类型 MRO/MDT
   start_time DateTime // 任务开始时间
   end_time  DateTime // 任务结束时间
-  status    Int      @default(0) // 状态 0未处理 1处理完成
+  status    Int      @default(0) // 状态 -1取消 0处理中 1处理完成
   remark    String?  @db.VarChar(500) // 任务备注，长文本类型，最大500字节
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -149,7 +149,7 @@ model taskList {
   @@map("task_list")
 }
 
-// enb_task列表模型
+// enb_task列表模型 // 后期需要更改
 model enbTaskList {
   id          Int      @id @default(autoincrement())
   taskId      Int      @db.Int
@@ -159,7 +159,6 @@ model enbTaskList {
   end_time    DateTime @db.DateTime
   parsed      Int      @default(0) // 解析状态 0未完成 1已完成
   status      Int      @default(0) // 状态 0未处理 1完成
-  trigger_check Int      @default(0) // 是否需要触发检查，0需要，1不需要
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -167,7 +166,6 @@ model enbTaskList {
   @@index([enodebid])
   @@index([parsed])
   @@index([status])
-  @@index([trigger_check])
   @@index([enodebid, data_type, parsed, status], name: "idx_enb_task_composite")
   @@map("enb_task_list")
 }

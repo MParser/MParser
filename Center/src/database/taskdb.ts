@@ -299,6 +299,8 @@ export class TaskManager {
     private enbTaskList = enbTaskListMap;
     private cellDataENB = cellDataENBMap;
     private inited: boolean = false;
+    private readonly mutex: Mutex = new Mutex(); // 添加互斥锁以保证线程安全
+    private isProcessingTasks: boolean = false; // 标记是否正在处理任务
 
     private constructor() {}
     public static getInstance(): TaskManager {
@@ -479,6 +481,16 @@ export class TaskManager {
      * @returns 处理结果
      */
     public async processUnhandledTasks(): Promise<{processed: number}> {
+        // 使用互斥锁保证多线程安全
+        const release = await this.mutex.acquire();
+        
+        // 如果已经有一个线程在处理任务，则直接返回
+        if (this.isProcessingTasks) {
+            release();
+            return { processed: 0 };
+        }
+        
+        this.isProcessingTasks = true; // 标记开始处理任务
         let totalProcessed = 0;
         
         try {
@@ -574,10 +586,15 @@ export class TaskManager {
         } catch (error) {
             logger.error('处理未处理任务出错:', error);
             throw error;
+        } finally {
+            this.isProcessingTasks = false; // 标记处理任务结束
+            release(); // 释放互斥锁
         }
     }
 
-        // 清理过期的扫描记录
+    /**
+     * 清理过期的扫描记录
+     */
     public async cleanExpiredScanRecords(): Promise<void> {
         try {
             const result = await redis.cleanExpiredScanRecords(45);
