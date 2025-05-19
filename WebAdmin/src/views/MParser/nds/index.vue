@@ -19,8 +19,8 @@ const currentEditItem = ref(null);
 const fetchNdsList = async () => {
   try {
     loading.value = true;
-    const { list } = await getNdsApi();
-    ndsList.value = list;
+    ndsList.value = await getNdsApi();
+    console.log(ndsList.value);
   } catch (error) {
     ElMessage.error("获取NDS列表失败");
   } finally {
@@ -127,7 +127,6 @@ const handleConnect = async (item) => {
     loading.close();
   }
 };
-console.log(ndsList)
 </script>
 
 <template>
