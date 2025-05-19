@@ -16,7 +16,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:visible", "success", "close"]);
-
 const selfVisible = useVModel(props, "visible", emit);
 const formRef = ref(null);
 const loading = ref(false);

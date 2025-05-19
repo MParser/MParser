@@ -53,9 +53,9 @@ const refreshSingleNds = async (id) => {
   try {
     loading.value = true;
     const { list } = await getNdsApi();
-    const updatedNds = list.find((item) => item.ID === id);
+    const updatedNds = list.find((item) => item.id === id);
     if (updatedNds) {
-      const index = ndsList.value.findIndex((item) => item.ID === id);
+      const index = ndsList.value.findIndex((item) => item.id === id);
       if (index !== -1) {
         ndsList.value[index] = updatedNds;
       }
@@ -100,7 +100,7 @@ const handleDelete = async (item) => {
       }
     );
 
-    await deleteNdsApi(item.ID);
+    await deleteNdsApi(item.id);
     ElMessage.success("删除成功");
     await fetchNdsList();
   } catch (error) {
@@ -119,7 +119,7 @@ const handleConnect = async (item) => {
   });
 
   try {
-    await connectNdsApi(item.ID);
+    await connectNdsApi(item.id);
     ElMessage.success("测试完成");
   } catch (error) {
     ElMessage.error(error.message || "测试失败");
@@ -127,6 +127,7 @@ const handleConnect = async (item) => {
     loading.close();
   }
 };
+console.log(ndsList)
 </script>
 
 <template>
@@ -140,16 +141,16 @@ const handleConnect = async (item) => {
     </div>
 
     <div class="nds-grid" v-loading="loading">
-      <el-card v-for="item in ndsList" :key="item.ID" class="nds-item">
+      <el-card v-for="item in ndsList" :key="item.id" class="nds-item">
         <div class="nds-header">
           <div class="header-left">
-            <span class="node-name">{{ item.ID }}</span>
+            <span class="node-name">{{ item.id }}</span>
             <el-button
               class="refresh-btn"
               :icon="Refresh"
               circle
               size="small"
-              @click="refreshSingleNds(item.ID)"
+              @click="refreshSingleNds(item.id)"
             />
           </div>
           <div class="header-right">
