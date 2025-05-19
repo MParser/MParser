@@ -119,7 +119,62 @@ const handleRegister = async (formEl) => {
       <span class="boxTitle">Login</span>
 
       <!-- 表单默认提交时触发 handleLogin -->
-      
+      <el-form
+        ref="loginFormRef"
+        :model="loginInfo"
+        :rules="rules.loginRules"
+        style="margin-top: 32px"
+        label-position="left"
+        label-width="48px"
+        size="large"
+      >
+        <el-form-item label="邮箱" prop="Email" class="form-item">
+          <el-input v-model="loginInfo.Email" placeholder="Email" />
+        </el-form-item>
+        <el-form-item label="密码" prop="Password" class="form-item">
+          <el-input
+            v-model="loginInfo.Password"
+            placeholder="Password"
+            show-password
+            @keyup.enter="handleLogin(loginFormRef)"
+          />
+        </el-form-item>
+        <el-form-item style="padding-left: 39px; margin-top: 32px">
+          <el-button 
+            type="primary" 
+            size="large" 
+            :loading="loginLoad"
+            @click.prevent="handleLogin(loginFormRef)"
+          >
+            Login
+          </el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-footer class="boxFooter">
+        <div style="width: 50%; justify-content: center">
+          <themeOption tipPlacement="top" />
+        </div>
+        <div
+          style="
+            width: 50%;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+          "
+        >
+          <el-tooltip content="注册" placement="top">
+            <el-button
+              link
+              type="primary"
+              size="large"
+              style="font-size: 1rem"
+              @click="viewStatus = 'reg'"
+              >Register</el-button
+            >
+          </el-tooltip>
+        </div>
+      </el-footer>
     </div>
 
     <!-- 注册页面 -->
@@ -199,6 +254,41 @@ const handleRegister = async (formEl) => {
 </template>
 
 <style scoped>
+.mainView {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+}
+.boxView {
+  width: 512px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  padding: 32px;
+}
+.loginTitle,
+.boxTitle {
+  font-family: "TypoGraphica", "argon", "Arial Narrow", serif;
+  font-size: 3em;
+  letter-spacing: 2px;
+  background: linear-gradient(
+    120deg,
+    grey,
+    cornflowerblue,
+    coral,
+    darkgoldenrod
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin-bottom: 20px;
+}
 
 .boxFooter {
   display: flex;

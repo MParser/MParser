@@ -4,7 +4,7 @@ import { userStore } from "@/store/sys/user.js";
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: "http://localhost:9002", // API的base_url
+  // baseURL: "http://localhost:9002", // API的base_url
   timeout: 60000, // 请求超时时间
   withCredentials: true, // 允许携带cookie
   headers: {

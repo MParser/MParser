@@ -63,6 +63,8 @@ Mock.mock(new RegExp(userApi.verify), "get", () => {
 
 // 用户登出
 Mock.mock(new RegExp(userApi.logout), "post", () => {
+  /// 清理Cookie
+  document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
   return {
     code: 200,
     message: "注销成功",
@@ -77,7 +79,7 @@ Mock.mock("/api/sys/announcements", "get", () => {
     message: "获取系统公告成功",
     data: [
       {
-        id: 1,
+        id: 3,
         title: "系统更新通知",
         content:
           "系统将于本周五进行例行维护和功能更新，请提前做好相关工作安排。",
@@ -92,7 +94,7 @@ Mock.mock("/api/sys/announcements", "get", () => {
         type: "success"
       },
       {
-        id: 3,
+        id: 1,
         title: "操作指南更新",
         content: "系统操作手册已更新，请在帮助中心查看最新版本。",
         date: "2025-01-05",

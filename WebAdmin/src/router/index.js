@@ -61,60 +61,60 @@ const routes = [
       requiresAuth: true,
     },
   },
-  {
-    path: "/department",
-    name: "部门管理",
-    component: () => import("@/views/sys/Department.vue"),
-    meta: {
-      icon: "PiNetwork",
-      requiresAuth: true,
-    },
-  },
-  {
-    path: "/role",
-    name: "角色管理",
-    component: () => import("@/views/sys/Role.vue"),
-    meta: {
-      icon: "BsPeople",
-      requiresAuth: true,
-    },
-  },
-  {
-    path: "/gateway",
-    name: "网关管理",
-    component: () => import("@/views/MParser/gateway/index.vue"),
-    meta: {
-      icon: "PiNetwork",
-      requiresAuth: true,
-    },
-  },
+  // {
+  //   path: "/department",
+  //   name: "部门管理",
+  //   component: () => import("@/views/sys/Department.vue"),
+  //   meta: {
+  //     icon: "PiNetwork",
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: "/role",
+  //   name: "角色管理",
+  //   component: () => import("@/views/sys/Role.vue"),
+  //   meta: {
+  //     icon: "BsPeople",
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: "/gateway",
+  //   name: "网关管理",
+  //   component: () => import("@/views/MParser/gateway/index.vue"),
+  //   meta: {
+  //     icon: "PiNetwork",
+  //     requiresAuth: true,
+  //   },
+  // },
   {
     path: "/nds",
-    name: "节点管理",
+    name: "NDS配置",
     component: () => import("@/views/MParser/nds/index.vue"),
     meta: {
       icon: "PiNetwork",
       requiresAuth: true,
     },
   },
-  {
-    path: "/parser",
-    name: "解析器",
-    component: () => import("@/views/MParser/parser/index.vue"),
-    meta: {
-      icon: "PiNetwork",
-      requiresAuth: true,
-    },
-  },
-  {
-    path: "/scanner",
-    name: "扫描器",
-    component: () => import("@/views/MParser/scanner/index.vue"),
-    meta: {
-      icon: "PiNetwork",
-      requiresAuth: true,
-    },
-  },
+  // {
+  //   path: "/parser",
+  //   name: "解析器",
+  //   component: () => import("@/views/MParser/parser/index.vue"),
+  //   meta: {
+  //     icon: "PiNetwork",
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: "/scanner",
+  //   name: "扫描器",
+  //   component: () => import("@/views/MParser/scanner/index.vue"),
+  //   meta: {
+  //     icon: "PiNetwork",
+  //     requiresAuth: true,
+  //   },
+  // },
   {
     path: '/task',
     name: '任务管理',
