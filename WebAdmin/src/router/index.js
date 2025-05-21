@@ -61,15 +61,15 @@ const routes = [
       requiresAuth: true,
     },
   },
-  // {
-  //   path: "/department",
-  //   name: "部门管理",
-  //   component: () => import("@/views/sys/Department.vue"),
-  //   meta: {
-  //     icon: "PiNetwork",
-  //     requiresAuth: true,
-  //   },
-  // },
+  {
+    path: "/celldata",
+    name: "小区工参",
+    component: () => import("@/views/MParser/celldata/index.vue"),
+    meta: {
+      icon: "AiOutlineTable",
+      requiresAuth: true,
+    },
+  },
   // {
   //   path: "/role",
   //   name: "角色管理",
