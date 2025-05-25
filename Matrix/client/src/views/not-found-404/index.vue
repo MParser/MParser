@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * 
- * @author Prk
- */
 
 const { push } = useRouter();
 </script>
@@ -12,7 +8,7 @@ const { push } = useRouter();
     <template #description>
         <h4>
             <b>
-                你找的页面没了
+                页面不存在
             </b>
         </h4>
     </template>

@@ -108,7 +108,7 @@ export class TaskController {
     static async create(req: Request, res: Response): Promise<void> {
         try {
             const data = req.body as TaskCreate;
-
+            logger.info('创建任务数据:', data);
             // 使用事务确保数据一致性
             const result = await mysql.$transaction(async (tx) => {
                 // 1. 创建主任务
@@ -117,8 +117,8 @@ export class TaskController {
                         name: data.name,
                         data_type: data.data_type,
                         remark: data.remark,
-                        start_time: data.start_time,
-                        end_time: data.end_time
+                        start_time: new Date(data.start_time), // 转换为标准Date对象
+                        end_time: new Date(data.end_time)     // 转换为标准Date对象
                     }
                 });
 

@@ -3,9 +3,10 @@
  */
 import { Router } from 'express';
 import { TaskController } from '../controllers/task';
+import { TaskDataController } from '../controllers/taskdata';
 
 const router = Router();
-
+export const routePath = '/task';
 // 获取任务列表
 router.get('/', TaskController.list);
 
@@ -19,10 +20,11 @@ router.get('/getTimeRange', TaskController.getTimeRange);
 router.get('/:id', TaskController.get);
 
 // 创建任务
-router.post('/', TaskController.create);
+router.post('/create', TaskController.create);
 
 // 删除任务
 router.delete('/:id', TaskController.delete);
 
+router.get('/:id/data', TaskDataController.getTaskData);
 
 export default router;

@@ -93,7 +93,7 @@ export class GatewayController {
             });
             res.success(gateway, '更新网关成功');
         } catch (error: any) {
-            res.internalError('更新网关失败');
+            res.internalError(`更新网关失败: ${error}`);
         }
     }
 

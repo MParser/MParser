@@ -14,7 +14,7 @@ const handleApiError = (error, defaultMessage) => {
 export async function getTaskApi() {
   try {
     return await request({
-      url: `${baseURL}/list`,
+      url: `${baseURL}/`,
       method: "get",
     });
   } catch (error) {
@@ -26,15 +26,14 @@ export async function getTaskApi() {
 export async function addTaskApi(data) {
   try {
     return await request({
-      url: "/api/task/add",
+      url: `${baseURL}/create`,
       method: "post",
       data: {
-        TaskName: data.TaskName,
-        DataType: data.Type,
-        StartTime: data.StartTime,
-        EndTime: data.EndTime,
-        Status: data.Status || "stopped",
-        eNodeBIDs: data.eNodeBIDs || [],
+        name: data.TaskName,
+        data_type: data.Type,
+        start_time: data.StartTime,
+        end_time: data.EndTime,
+        enodebids: data.eNodeBIDs || [],
       },
     });
   } catch (error) {
@@ -115,7 +114,7 @@ export async function stopTaskApi(id) {
 export async function getTaskDetailApi(id) {
   try {
     return await request({
-      url: `/api/task/detail/${id}`,
+      url: `/api/task/${id}`,
       method: "get",
     });
   } catch (error) {
@@ -147,4 +146,19 @@ export async function getTaskLogsApi(id, params) {
   } catch (error) {
     return handleApiError(error, "获取任务日志失败");
   }
+}
+
+// 获取任务结果数据
+export async function getTaskDataApi(taskId, params ={}) {
+    try {
+        return await request({
+        url: `/api/task/${taskId}/data`,
+        method: "get",
+        params
+        });
+    } catch (error) {
+        console.error("获取任务数据失败", error);
+        ElMessage.error(error.message || "获取任务数据失败");
+        return Promise.reject(error);
+    }
 }

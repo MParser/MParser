@@ -79,15 +79,15 @@ const routes = [
   //     requiresAuth: true,
   //   },
   // },
-  // {
-  //   path: "/gateway",
-  //   name: "网关管理",
-  //   component: () => import("@/views/MParser/gateway/index.vue"),
-  //   meta: {
-  //     icon: "PiNetwork",
-  //     requiresAuth: true,
-  //   },
-  // },
+  {
+    path: "/gateway",
+    name: "网关管理",
+    component: () => import("@/views/MParser/gateway/index.vue"),
+    meta: {
+      icon: "PiNetwork",
+      requiresAuth: true,
+    },
+  },
   {
     path: "/nds",
     name: "NDS配置",
@@ -97,15 +97,15 @@ const routes = [
       requiresAuth: true,
     },
   },
-  // {
-  //   path: "/parser",
-  //   name: "解析器",
-  //   component: () => import("@/views/MParser/parser/index.vue"),
-  //   meta: {
-  //     icon: "PiNetwork",
-  //     requiresAuth: true,
-  //   },
-  // },
+  {
+    path: "/parser",
+    name: "解析器",
+    component: () => import("@/views/MParser/parser/index.vue"),
+    meta: {
+      icon: "PiNetwork",
+      requiresAuth: true,
+    },
+  },
   // {
   //   path: "/scanner",
   //   name: "扫描器",
@@ -124,6 +124,7 @@ const routes = [
       requiresAuth: true,
     },
   }
+  
 ];
 
 // 创建路由实例

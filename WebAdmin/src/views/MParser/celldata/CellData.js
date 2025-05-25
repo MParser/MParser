@@ -1,4 +1,4 @@
-import { genFileId } from "element-plus";
+import { genFileId, ElMessageBox, ElNotification } from "element-plus";
 import {computed, reactive, ref} from "vue";
 import { 
   getCellDataListApi, 
@@ -11,21 +11,46 @@ import {
   uploadCellDataCsvApi,
   downloadCellDataApi 
 } from "@/apis/MParser/celldata";
+import generateCSV from '@/utils/js-csv';
 
+const showMsg = async (message, type) => {
+    if (type === "inquire") {
+        try {
+            await ElMessageBox.confirm(message, "确认操作", {
+                confirmButtonText: "确定",
+                cancelButtonText: "取消",
+                type: "warning",
+                dangerouslyUseHTMLString: true
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    } else {
+        ElNotification({
+            title: type === "success" ? "成功" : type === "error" ? "错误" : "提示",
+            message,
+            type,
+            duration: 3000,
+            dangerouslyUseHTMLString: type === "inquire"
+        });
+        return true;
+    }
+};
 
 export default () => {
     const loading = ref(true);  // 显示加载状态
-
+    const uploading = ref(false); // 显示上传状态
     const viewConfig = reactive({ // 界面定制配置
         tableMaxHeight: 8200, //列表最高高度， 8K
         buttons: {  // 顶栏按钮配置
             refresh: true,
             upload: true,
-            add: true,
+            add: false, // 我发现没有
             download: true,
         },
         table: { // 表格配置
-            idColumnName: "ID", //主键
+            idColumnName: "CGI", //主键
             show: false, //是否显示
             sortable: true,  //是否可排序
             exportModule: '/CellData_module.xlsx',  //导出模板
@@ -34,9 +59,8 @@ export default () => {
             exportStaIndex: 2,  //导出起始行
             ctlButton: computed(() => true),  //是否显示操作按钮，按权限决定
             ctlButtons: computed(() => [  //列表操作按钮，动态按权限决定是否显示
-                { title: "编辑", type: "primary", size: "small", action: "edit", show: true },
-                { title: "删除", type: "danger", size: "small", action: "delete", show: true },
-                { title: "修改记录", type: "info", size: "small", action: "log", show: true },
+                { title: "编辑", type: "primary", size: "default", action: "edit", show: true },
+                { title: "删除", type: "danger", size: "default", action: "delete", show: true },
             ].filter(btn => btn.show)),
         },
         footer: {  // 底部配置
@@ -87,7 +111,24 @@ export default () => {
     const selected = ref([]);  // 列表选中项
     const dataTotal = ref(0); // 数据总数
     const tableData = ref([]);  // 列表数据
-    const fields = ref([]); // 字段列表，Table表头
+
+
+    const fields = ref([
+        
+        { prop: "CGI", valueAlign: "left", headerAlign: "left", width: 150, sortable: true },
+        { prop: "Earfcn", valueAlign: "center", headerAlign: "center", width: 100, sortable: true },
+        { prop: "Freq", valueAlign: "center", headerAlign: "center", width: 100, sortable: true },
+        { prop: "Latitude", valueAlign: "center", headerAlign: "center", width: 130, sortable: true },
+        { prop: "Longitude", valueAlign: "center", headerAlign: "center", width: 130, sortable: true },
+        { prop: "Azimuth", valueAlign: "center", headerAlign: "center", width: 110, sortable: true },
+        { prop: "PCI", valueAlign: "center", headerAlign: "center", width: 80, sortable: true },
+        { prop: "eNodeBID", valueAlign: "center", headerAlign: "center", width: 130, sortable: true },
+        { prop: "eNBName", valueAlign: "left", headerAlign: "left", width: 200, sortable: true },
+        { prop: "userLabel", valueAlign: "left", headerAlign: "left", width: 200, sortable: true },
+        { prop: "createdAt", label: "创建时间", valueAlign: "center", headerAlign: "center", width: 180, sortable: true },
+        { prop: "updatedAt", label: "更新时间", valueAlign: "center", headerAlign: "center", width: 180, sortable: true }
+    ]); // 字段列表，Table表头
+
     const search = reactive({
         field: null,
         value: null,
@@ -117,7 +158,10 @@ export default () => {
             return await batchDeleteCellDataApi(ids)
         },
         uploadCellData: async (file) => { // 上传CellData数据
-            return await uploadCellDataCsvApi(file)
+            uploading.value = true
+            const res = await uploadCellDataCsvApi(file)
+            uploading.value = false
+            return res
         },
         deleteCell: async (cgi) => { // 删除单个CellData数据
             return await deleteCellDataApi(cgi)
@@ -125,8 +169,8 @@ export default () => {
         deleteAllCell: async () => { // 删除所有CellData数据
             return await deleteAllCellDataApi()
         },
-        downloadCellData: async (cgi) => { // 下载单个CellData数据
-            return await downloadCellDataApi(cgi)
+        downloadCellData: async (params) => { // 下载单个CellData数据
+            return await downloadCellDataApi(params)
         },
 
         
@@ -164,21 +208,24 @@ export default () => {
     const onTableSelectRow = (row) => { selected.value = row };
     const onRefreshButtonClick = async () => { await getTableData() };
     const getTableData = withLoading(async () => {
-        const data_res = await serverAPI.getData()
+        const data_res = await serverAPI.getData({
+            ...search,
+            pageSize: search.size
+        })
         tableData.value = null
-        if (data_res.status === 200) {
-            dataTotal.value = data_res.data.total
-            tableData.value = data_res.data.data
-            fields.value = data_res.data.fields
-            viewConfig.table.show = true
-        } else {
-            await showMsg(`获取数据失败: ${data_res.data.message}`, "error");
-        }
+        dataTotal.value = data_res.pagination.total
+        tableData.value = data_res.list
+        // fields.value = data_res.data.fields
+        viewConfig.table.show = true
     })
 
     // 自定义方法
     const ctlTableMaxHeight = (view, offset) => {
-        if (view.value) { viewConfig.tableMaxHeight = view.value["clientHeight"] - offset }
+        if (view.value) { 
+            viewConfig.tableMaxHeight = view.value["clientHeight"] - offset; 
+            console.log(viewConfig.tableMaxHeight);
+            
+        }
     }
 
     const delRow = async (row_ids) => {
@@ -186,11 +233,11 @@ export default () => {
         const confirmMsg = `是否确定删除选中数据?<br>此操作不可逆!${row_ids.length > 1 ? `<br>本次选择删除数据：${row_ids.length}条` : ''}`;
         if (await showMsg(confirmMsg, "inquire")) {
             const response = await serverAPI.delData(row_ids)
-            if (response.status === 200) {
+            if (response.code === 200) {
                 await showMsg("删除成功", "success");
                 await getTableData()
             } else {
-                await showMsg(`删除失败: ${response.data.message || '未知错误'}`, "error");
+                await showMsg(`删除失败: ${response.message || '未知错误'}`, "error");
             }
         }
     }
@@ -219,10 +266,11 @@ export default () => {
                 await showMsg(`未知操作类型: ${action}`, "error");
         }
     });
-    const onUploadButtonClick = withLoading(async () => {
-        dialog.upload.show = true;
 
-    });
+    const onUploadButtonClick = () => {
+        fileInput.value?.click();
+    };
+
     /** @type {import('vue').Ref<import('element-plus').UploadInstance | null>} */
     const upload_celldata_file = ref(null);
     function onCellDataExceed(files) {
@@ -314,16 +362,17 @@ export default () => {
         downloadLoad.value = true;
         const filter = reactive({ ...search });
         filter.size = -1;
-        const data_res = await serverAPI.getData(filter)
-        if (data_res.status === 200) {
-            await saveExcel(
-                data_res.data.data,
-                viewConfig.table.exportModule,
-                viewConfig.table.exportSheetName,
-                viewConfig.table.exportStaIndex,
-                viewConfig.table.exportFileName
-            )
-            delete data_res.data
+        const data_res = await serverAPI.downloadCellData(filter)
+        if (data_res.code === 200) {
+            generateCSV(data_res.data, {}, ['createdAt', 'updatedAt']);
+            // await saveExcel(
+            //     data_res.data.data,
+            //     viewConfig.table.exportModule,
+            //     viewConfig.table.exportSheetName,
+            //     viewConfig.table.exportStaIndex,
+            //     viewConfig.table.exportFileName
+            // )
+            // delete data_res.data
         } else {
             await showMsg(`下载数据失败: ${data_res.data.message}`, "error");
         }
@@ -334,18 +383,49 @@ export default () => {
 
 
     async function drawerSave() {
+        
         drawer.edit.saving = true
-        const res = await serverAPI.saveData(drawer.edit.data);
-        if (res.status !== 200) {
+        const res = await serverAPI.saveData({
+            ...drawer.edit.data,
+            Azimuth: Number(drawer.edit.data.Azimuth)
+        });
+        
+        if (res.code !== 200) {
             drawer.edit.saving = false;
-            await showMsg(`保存失败: ${res.data.message}`, "error");
+            await showMsg(`保存失败: ${res.message}`, "error");
             return;
         }
-        await showMsg(res.data.message, "success");
+        await showMsg(res.message, "success");
         drawer.edit.saving = false;
         drawer.edit.show = false;
         await getTableData();
     }
+
+    const fileInput = ref(null);
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return void 0;
+
+        const isCSV = 'text/csv' === file.type || file.name.endsWith('.csv');
+        if (!isCSV) {
+            showMsg("请上传CSV文件", "error");
+            fileInput.value.value = '';
+            return;
+        }
+
+        try {
+            const response = await serverAPI.uploadCellData(file);
+            if (response.code === 200) {
+                await showMsg("上传成功", "success");
+                await getTableData();
+            } else {
+                await showMsg(`上传失败: ${response.message}`, "error");
+            }
+        } catch(e) {}
+
+        // 上传
+        fileInput.value.value = '';
+    };
 
     return {
         // 变量
@@ -362,6 +442,7 @@ export default () => {
         drawer,
         // 函数
         ctlTableMaxHeight,
+        getTableData,
         onSearchValueChange,
         onSearchButtonClick,
         onUploadButtonClick,
@@ -380,5 +461,9 @@ export default () => {
         onCellScriptUploadFileChange,
         drawerSave,
         downloadCellScript,
+
+        fileInput,
+        handleFileSelect,
+        uploading,
     }
 }

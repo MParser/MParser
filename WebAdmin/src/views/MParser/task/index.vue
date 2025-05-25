@@ -20,6 +20,7 @@ import {
   View,
 } from "@element-plus/icons-vue";
 import DetailTaskDialog from './components/detail-task-dialog/index.vue';
+import TaskDataDrawer from './components/task-data-drawer/index.vue';
 
 const taskList = ref([]);
 const loading = ref(false);
@@ -32,19 +33,18 @@ const currentDetailItem = ref(null);
 const fetchTaskList = async () => {
   try {
     loading.value = true;
-    const { code, data } = await getTaskApi();
-    console.log(data, "====data");
+    const {data} = await getTaskApi();
 
     // 转换后端返回的数据格式
-    taskList.value = data?.list?.map((item) => ({
-      ID: item.TaskID,
-      Name: item.TaskName,
-      Type: item.DataType,
-      StartTime: dayjs(item.StartTime).format("YYYY-MM-DD HH:mm:ss"),
-      EndTime: dayjs(item.EndTime).format("YYYY-MM-DD HH:mm:ss"),
-      CreateTime: dayjs(item.createdAt).format("YYYY-MM-DD HH:mm:ss"),
-      UpdateTime: dayjs(item.updatedAt).format("YYYY-MM-DD HH:mm:ss"),
-      Status: item.Status || "stopped", // 如果后端没有返回Status字段，默认为stopped
+    taskList.value = data?.map((item) => ({
+      id: item.id,
+      name: item.name,
+      data_type: item.data_type,
+      start_time: formatDateTime(item.start_time),
+      end_time: formatDateTime(item.end_time),
+      createdAt: formatDateTime(item.createdAt),
+      updatedAt: formatDateTime(item.updatedAt),
+      status: item.status || "stopped", // 如果后端没有返回Status字段，默认为stopped
     }));
   } catch (error) {
     console.log(error, "====error");
@@ -74,25 +74,6 @@ const handleRefresh = () => {
   ElMessage.success("数据刷新成功");
 };
 
-// 添加单个任务刷新方法
-const refreshSingleTask = async (id) => {
-  try {
-    loading.value = true;
-    const { list } = await getTaskApi();
-    const updatedTask = list.find((item) => item.ID === id);
-    if (updatedTask) {
-      const index = taskList.value.findIndex((item) => item.ID === id);
-      if (index !== -1) {
-        taskList.value[index] = updatedTask;
-      }
-    }
-    ElMessage.success("数据刷新成功");
-  } catch (error) {
-    ElMessage.error("数据刷新失败");
-  } finally {
-    loading.value = false;
-  }
-};
 
 const handleAdd = () => {
   dialogVisible.value = true;
@@ -111,7 +92,7 @@ const handleDialogClose = () => {
 const handleDelete = async (item) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除任务 "${item.Name}" 吗？`,
+      `确定要删除任务 "${item.name}" 吗？`,
       "删除确认",
       {
         confirmButtonText: "确定",
@@ -120,51 +101,13 @@ const handleDelete = async (item) => {
       }
     );
 
-    await deleteTaskApi(item.ID);
+    await deleteTaskApi(item.id);
     ElMessage.success("删除成功");
     await fetchTaskList();
   } catch (error) {
     if (error !== "cancel") {
       ElMessage.error(error.message || "删除失败");
     }
-  }
-};
-
-// 启动任务
-const handleStart = async (item) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: "正在启动任务...",
-    background: "rgba(0, 0, 0, 0.7)",
-  });
-
-  try {
-    await startTaskApi(item.ID);
-    ElMessage.success("任务启动成功");
-    await fetchTaskList();
-  } catch (error) {
-    ElMessage.error(error.message || "启动失败");
-  } finally {
-    loading.close();
-  }
-};
-
-// 停止任务
-const handleStop = async (item) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: "正在停止任务...",
-    background: "rgba(0, 0, 0, 0.7)",
-  });
-
-  try {
-    await stopTaskApi(item.ID);
-    ElMessage.success("任务停止成功");
-    await fetchTaskList();
-  } catch (error) {
-    ElMessage.error(error.message || "停止失败");
-  } finally {
-    loading.close();
   }
 };
 
@@ -183,45 +126,47 @@ const handleDetail = (row) => {
 // 定义表格列配置
 const columns = [
   {
-    prop: 'Name',
+    prop: 'name',
     label: '任务名称',
     minWidth: '150',
   },
   {
-    prop: 'ID',
+    prop: 'id',
     label: '任务ID',
     minWidth: '100',
   },
   {
-    prop: 'Type',
+    prop: 'data_type',
     label: '任务类型',
     minWidth: '120',
   },
   {
-    prop: 'StartTime',
+    prop: 'start_time',
     label: '开始时间',
     minWidth: '180',
-    formatter: (row) => formatDateTime(row.StartTime),
+    formatter: (row) => formatDateTime(row.start_time),
   },
   {
-    prop: 'EndTime',
+    prop: 'end_time',
     label: '结束时间',
     minWidth: '180',
-    formatter: (row) => formatDateTime(row.EndTime),
+    formatter: (row) => formatDateTime(row.end_time),
   },
   {
-    prop: 'CreateTime',
+    prop: 'createdAt',
     label: '创建时间',
     minWidth: '180',
-    formatter: (row) => formatDateTime(row.CreateTime),
+    formatter: (row) => formatDateTime(row.createdAt),
   },
   {
-    prop: 'UpdateTime',
+    prop: 'updatedAt',
     label: '更新时间',
     minWidth: '180',
-    formatter: (row) => formatDateTime(row.UpdateTime),
+    formatter: (row) => formatDateTime(row.updatedAt),
   },
 ];
+
+const taskDataId = ref(null);
 </script>
 
 <template>
@@ -251,6 +196,12 @@ const columns = [
           <template #default="{ row }">
             <div class="operation-buttons">
               <el-button
+                :icon="View"
+                circle
+                size="small"
+                @click="() => taskDataId = row.id"
+              />
+              <el-button
                 type="primary"
                 :icon="View"
                 circle
@@ -279,6 +230,11 @@ const columns = [
     <detail-task-dialog
       v-model:visible="detailVisible"
       :task-data="currentDetailItem"
+    />
+
+    <TaskDataDrawer
+      :taskId="taskDataId"
+      @close="() => taskDataId = null"
     />
   </div>
 </template>

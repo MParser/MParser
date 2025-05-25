@@ -28,7 +28,7 @@ const loading = ref(false);
 
 // 监听弹窗显示，获取详情
 watch(dialogVisible, async (val) => {
-  if (val && props.taskData?.ID) {
+  if (val && props.taskData?.id) {
     await fetchTaskDetail();
   } else {
     detailData.value = {};
@@ -46,11 +46,14 @@ const handleClose = () => {
 const fetchTaskDetail = async () => {
   try {
     loading.value = true;
-    const { data } = await getTaskDetailApi(props.taskData.ID);
+    const { data } = await getTaskDetailApi(props.taskData.id);
     detailData.value = {
       ...props.taskData,
       ...data,
+      // 确保物理字段名称一致性
+      enb_tasks: data.enb_tasks || [],
     };
+    console.log('任务详情数据:', detailData.value);
   } catch (error) {
     console.error("获取任务详情失败:", error);
     ElMessage.error("获取任务详情失败");
@@ -111,7 +114,8 @@ const handleBatchDelete = async () => {
       removeEnbs: selectedEnbs.value,
       addEnbs: [],
     };
-    await updateENBidsApi(props.taskData.ID, params);
+    // 使用正确的字段名 id 而非 ID
+    await updateENBidsApi(props.taskData.id, params);
     // 调用删除接口
     console.log("删除的ENB IDs:", selectedEnbs.value);
     ElMessage.success("删除成功");
@@ -178,7 +182,7 @@ const handleBatchAdd = async () => {
       addEnbs: newIds,
       removeEnbs: [],
     };
-    await updateENBidsApi(props.taskData.ID, params);
+    await updateENBidsApi(props.taskData.id, params);
     // TODO: 调用添加接口
     console.log("添加的ENB IDs:", newIds);
     ElMessage.success("添加成功");
@@ -196,11 +200,13 @@ const searchKeyword = ref('');
 
 // 添加计算属性来过滤ENB任务列表
 const filteredEnbTasks = computed(() => {
+  // 确保使用正确的字段名 enb_tasks 而非 enbTasks
   if (!searchKeyword.value) {
-    return detailData.value.enbTasks || [];
+    return detailData.value.enb_tasks || [];
   }
-  return (detailData.value.enbTasks || []).filter(enb =>
-    String(enb.eNodeBID).includes(searchKeyword.value.trim())
+  return (detailData.value.enb_tasks || []).filter(enb =>
+    // 确保使用正确的字段名 enodebid 而非 eNodeBID
+    String(enb.enodebid).includes(searchKeyword.value.trim())
   );
 });
 </script>
@@ -218,12 +224,12 @@ const filteredEnbTasks = computed(() => {
       <!-- 第一行：任务名称和时间信息 -->
       <div class="detail-header">
         <div class="task-name">
-          <h3>{{ detailData.Name || taskData.Name }}</h3>
+          <h3>{{ detailData.name || taskData.name }}</h3>
         </div>
         <div class="task-time">
           <el-tag size="small" type="info">
-            {{ formatDateTime(detailData.StartTime || taskData.StartTime) }} ~
-            {{ formatDateTime(detailData.EndTime || taskData.EndTime) }}
+            {{ formatDateTime(detailData.start_time || taskData.start_time) }} ~
+            {{ formatDateTime(detailData.end_time || taskData.end_time) }}
           </el-tag>
         </div>
       </div>
@@ -236,7 +242,7 @@ const filteredEnbTasks = computed(() => {
           <div class="header-left">
             <h4 class="section-title">ENB任务列表</h4>
             <span class="enb-count"
-              >共 {{ detailData.enbTasks?.length || 0 }} 个</span
+              >共 {{ detailData.enb_tasks?.length || 0 }} 个</span
             >
           </div>
           <div class="header-right">
@@ -252,28 +258,31 @@ const filteredEnbTasks = computed(() => {
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-button
+            <!-- <el-button
               type="danger"
               size="small"
               :disabled="!selectedEnbs.length"
               @click="handleBatchDelete"
             >
               批量删除
-            </el-button>
+            </el-button> -->
           </div>
         </div>
 
         <div class="enb-box" v-if="filteredEnbTasks.length">
           <el-checkbox-group v-model="selectedEnbs">
             <div class="checkbox-wrap">
-              <el-checkbox
+              <!-- <el-checkbox
                 v-for="enb in filteredEnbTasks"
-                :key="enb.eNodeBID"
-                :label="enb.eNodeBID"
+                :key="enb.enodebid"
+                :label="enb.enodebid"
                 class="checkbox-item"
               >
-                {{ enb.eNodeBID }}
-              </el-checkbox>
+                {{ enb.enodebid }}
+              </el-checkbox> -->
+              <el-tag v-for="enb in filteredEnbTasks" :key="enb.enodebid">
+                {{ enb.enodebid }}
+              </el-tag>
             </div>
           </el-checkbox-group>
         </div>
@@ -282,7 +291,7 @@ const filteredEnbTasks = computed(() => {
       </div>
 
       <!-- 批量添加输入框 -->
-      <div class="batch-add-section">
+      <!-- <div class="batch-add-section">
         <div class="batch-add-header">
           <h4 class="section-title">批量添加ENB</h4>
         </div>
@@ -299,7 +308,7 @@ const filteredEnbTasks = computed(() => {
             确定添加
           </el-button>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <template #footer>

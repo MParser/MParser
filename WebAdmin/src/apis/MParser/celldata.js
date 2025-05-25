@@ -68,7 +68,7 @@ export const updateCellDataApi = async (data) => {
       data
     });
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "更新小区数据失败");
   } catch (error) {
@@ -84,7 +84,7 @@ export const deleteCellDataApi = async (cgi) => {
       method: "delete"
     });
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "删除小区数据失败");
   } catch (error) {
@@ -101,7 +101,7 @@ export const batchDeleteCellDataApi = async (cgis) => {
       data: { cgis }
     });
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "批量删除小区数据失败");
   } catch (error) {
@@ -118,7 +118,7 @@ export const deleteAllCellDataApi = async () => {
       data: {}
     });
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "删除所有小区数据失败");
   } catch (error) {
@@ -142,7 +142,7 @@ export const uploadCellDataCsvApi = async (file) => {
     });
     
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "上传小区数据CSV文件失败");
   } catch (error) {
@@ -151,15 +151,16 @@ export const uploadCellDataCsvApi = async (file) => {
 };
 
 // 下载所有小区数据
-export const downloadCellDataApi = async () => {
+export const downloadCellDataApi = async (params) => {
   try {
     const res = await request({
       url: "/api/cell/download/all",
-      method: "get"
+      method: "get",
+      params
     });
     
     if (res.code === 200) {
-      return res.data;
+      return res;
     }
     return handleApiError(res, "下载小区数据失败");
   } catch (error) {

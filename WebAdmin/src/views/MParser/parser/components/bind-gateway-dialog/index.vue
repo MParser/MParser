@@ -21,15 +21,16 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:visible", "success"]);
-const selfVisible = useVModel(props, "visible", emit);
+const selfVisible = useVModel
+(props, "visible", emit);
 const formRef = ref(null);
 const formLoading = ref(false);
 const gatewayList = ref([]);
 
 const getGatewayOptions = async () => {
   try {
-    const { list } = await getGatewayListApi();
-    gatewayList.value = list;
+    const data = await getGatewayListApi();
+    gatewayList.value = data;
   } catch (error) {
     ElMessage.error("获取网关列表失败");
   }
@@ -106,9 +107,9 @@ const handleCancel = () => {
         >
           <el-option
             v-for="item in gatewayList"
-            :key="item.ID"
-            :label="item.NodeName"
-            :value="item.ID"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
           />
         </el-select>
       </el-form-item>

@@ -25,16 +25,16 @@ const formRef = ref(null);
 const formLoading = ref(false);
 
 const form = ref({
-  ID: null,
-  NodeName: "",
-  Status: 0,
-  Switch: 0,
-  Threads: 0
+  id: null,
+  name: "",
+  status: 0,
+  switch: 0,
+  pools: 0
 });
 
 const rules = {
-  NodeName: [{ required: true, message: "请输入节点名称", trigger: "blur" }],
-  Threads: [{ required: true, message: "请输入线程数", trigger: "blur" }],
+  name: [{ required: true, message: "请输入节点名称", trigger: "blur" }],
+  pools: [{ required: true, message: "请输入线程数", trigger: "blur" }],
 };
 
 // 监听 visible 变化，初始化表单数据
@@ -44,22 +44,22 @@ watch(
     if (newVal) {
       if (props.parserId) {
         // 编辑模式：只复制需要编辑的字段
-        const { ID, NodeName, Status, Switch, Threads } = props.parserInfo;
+        const { id, name, status, switch: switchValue, pools } = props.parserInfo;
         form.value = {
-          ID,
-          NodeName,
-          Status,
-          Switch,
-          Threads
+          id,
+          name,
+          status,
+          switch: switchValue,
+          pools
         };
       } else {
         // 新增模式：重置表单
         form.value = {
-          ID: null,
-          NodeName: "",
-          Status: 0,
-          Switch: 0,
-          Threads: 0
+          id: null,
+          name: "",
+          status: 0,
+          switch: 0,
+          pools: 0
         };
       }
     }
@@ -104,20 +104,20 @@ const handleCancel = () => {
       label-width="80px"
       :disabled="formLoading"
     >
-      <el-form-item label="节点名称" prop="NodeName">
-        <el-input v-model="form.NodeName" placeholder="请输入节点名称" />
+      <el-form-item label="节点名称" prop="name">
+        <el-input v-model="form.name" placeholder="请输入节点名称" />
       </el-form-item>
 
-      <el-form-item label="线程数" prop="Threads">
+      <el-form-item label="线程数" prop="pools">
         <el-input-number
-          v-model="form.Threads"
+          v-model="form.pools"
           :min="1"
           style="width: 100%"
         />
       </el-form-item>
 
       <el-form-item label="状态">
-        <el-select v-model="form.Status" placeholder="请选择状态">
+        <el-select v-model="form.status" placeholder="请选择状态">
           <el-option :value="1" label="正常" />
           <el-option :value="0" label="异常" />
         </el-select>
@@ -125,7 +125,7 @@ const handleCancel = () => {
 
       <el-form-item label="开关">
         <el-switch
-          v-model="form.Switch"
+          v-model="form.switch"
           :active-value="1"
           :inactive-value="0"
         />

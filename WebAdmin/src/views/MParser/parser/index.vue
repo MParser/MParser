@@ -28,7 +28,6 @@ const fetchParserList = async () => {
     loading.value = true;
     const data = await getParserApi();
     parserList.value = data;
-    console.log(parserList.value, "===parserList");
   } catch (error) {
     ElMessage.error("获取解析器列表失败");
   } finally {
@@ -43,11 +42,13 @@ onMounted(async () => {
 
 const handleSwitchChange = async (item) => {
   try {
+    // 调用优化后的updateParserApi接口
     await updateParserApi(item);
     ElMessage.success("更新成功");
+    // 刷新列表
     await fetchParserList();
   } catch (error) {
-    ElMessage.error("更新失败");
+    ElMessage.error(error.message || "更新失败");
   }
 };
 
@@ -60,10 +61,10 @@ const handleRefresh = () => {
 const refreshSingleParser = async (id) => {
   try {
     loading.value = true;
-    const { list } = await getParserApi();
-    const updatedParser = list.find((item) => item.ID === id);
+    const data = await getParserApi();
+    const updatedParser = data.find((item) => item.id === id);
     if (updatedParser) {
-      const index = parserList.value.findIndex((item) => item.ID === id);
+      const index = parserList.value.findIndex((item) => item.id === id);
       if (index !== -1) {
         parserList.value[index] = updatedParser;
       }
@@ -77,7 +78,7 @@ const refreshSingleParser = async (id) => {
 };
 
 const handleEdit = (parserId) => {
-  const currentParser = parserList.value.find((item) => item.ID === parserId);
+  const currentParser = parserList.value.find((item) => item.id === parserId);
   if (!currentParser) {
     ElMessage.error("未找到解析器数据");
     return;
@@ -101,7 +102,7 @@ const handleDialogSuccess = async () => {
 const handleDelete = async (item) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除解析器 "${item.NodeName}" 吗？`,
+      `确定要删除解析器 "${item.name}" 吗？`,
       "删除确认",
       {
         confirmButtonText: "确定",
@@ -110,7 +111,7 @@ const handleDelete = async (item) => {
       }
     );
 
-    await deleteParserApi(item.ID);
+    await deleteParserApi(item.id);
     ElMessage.success("删除成功");
     await fetchParserList();
   } catch (error) {
@@ -122,7 +123,7 @@ const handleDelete = async (item) => {
 
 const getParserInfo = (id) => {
   if (!id) return {};
-  const parser = parserList.value.find((item) => item.ID === id);
+  const parser = parserList.value.find((item) => item.id === id);
   return parser || {};
 };
 
@@ -131,16 +132,16 @@ const currentBindParserId = ref(null);
 const currentGatewayId = ref(null);
 
 const handleBindGateway = (parser) => {
-  currentBindParserId.value = parser.ID;
-  currentGatewayId.value = parser.GatewayID;
+  currentBindParserId.value = parser.id;
+  currentGatewayId.value = parser.gateway?.id || null;
   bindGatewayVisible.value = true;
 };
 </script>
 
 <template>
   <div class="card-container">
-    <global-card>
-      <template #header>
+    <el-card>
+      <!-- <template #header>
         <div class="card-header">
           <div class="header-left">
             <span>解析器列表</span>
@@ -154,19 +155,19 @@ const handleBindGateway = (parser) => {
             :loading="loading"
           />
         </div>
-      </template>
+      </template> -->
 
       <div class="parser-grid" v-loading="loading">
-        <el-card v-for="item in parserList" :key="item.ID" class="parser-item">
+        <el-card v-for="item in parserList" :key="item.id" class="parser-item">
           <div class="parser-header">
             <div class="header-left">
-              <span class="node-name">{{ item.NodeName }}</span>
+              <span class="node-name">{{ item.name }}</span>
               <el-button
                 class="refresh-btn"
                 :icon="Refresh"
                 circle
                 size="small"
-                @click="refreshSingleParser(item.ID)"
+                @click="refreshSingleParser(item.id)"
               />
             </div>
             <div class="header-right">
@@ -175,7 +176,7 @@ const handleBindGateway = (parser) => {
                 :icon="Edit"
                 circle
                 size="small"
-                @click="handleEdit(item.ID)"
+                @click="handleEdit(item.id)"
                 class="edit-btn"
               />
               <el-button
@@ -187,7 +188,7 @@ const handleBindGateway = (parser) => {
                 class="bind-btn"
               />
               <el-switch
-                v-model="item.Switch"
+                v-model="item.switch"
                 :active-value="1"
                 :inactive-value="0"
                 class="parser-switch"
@@ -207,41 +208,41 @@ const handleBindGateway = (parser) => {
           <div class="parser-info">
             <div class="info-item">
               <span class="label">ID:</span>
-              <span class="value">{{ item.ID }}</span>
+              <span class="value">{{ item.id }}</span>
             </div>
             <div class="info-item">
               <span class="label">网关名称:</span>
-              <!-- <span class="value">{{ item?.gateway?.NodeName }}</span> -->
+              <span class="value">{{ item?.gateway?.name }}</span>
               <el-tag
-                :type="item?.gateway?.NodeName ? 'success' : 'warning'"
+                :type="item?.gateway?.name ? 'success' : 'warning'"
                 size="small"
               >
-                {{ item?.gateway?.NodeName }}
+                {{ item?.gateway?.id }}
               </el-tag>
             </div>
             <div class="info-item">
               <span class="label">节点名称:</span>
-              <span class="value">{{ item.NodeName }}</span>
+              <span class="value">{{ item.name }}</span>
             </div>
             <div class="info-item">
               <span class="label">主机:</span>
-              <span class="value">{{ item.Host }}</span>
+              <span class="value">{{ item.host }}</span>
             </div>
             <div class="info-item">
               <span class="label">端口:</span>
-              <span class="value">{{ item.Port }}</span>
+              <span class="value">{{ item.port }}</span>
             </div>
             <div class="info-item">
               <span class="label">线程数:</span>
-              <span class="value">{{ item.Threads }}</span>
+              <span class="value">{{ item.pools }}</span>
             </div>
             <div class="info-item">
               <span class="label">状态:</span>
               <el-tag
-                :type="item.Status === 1 ? 'success' : 'danger'"
+                :type="item.status === 1 ? 'success' : 'danger'"
                 size="small"
               >
-                {{ item.Status === 1 ? "正常" : "异常" }}
+                {{ item.status === 1 ? "正常" : "异常" }}
               </el-tag>
             </div>
           </div>
@@ -254,7 +255,7 @@ const handleBindGateway = (parser) => {
         :parser-id="currentParserId"
         :parser-info="
           currentParserId
-            ? parserList.find((item) => item.ID === currentParserId) ?? {}
+            ? parserList.find((item) => item.id === currentParserId) ?? {}
             : {}
         "
         @success="handleDialogSuccess"
@@ -267,7 +268,7 @@ const handleBindGateway = (parser) => {
         :current-gateway-id="currentGatewayId"
         @success="handleDialogSuccess"
       />
-    </global-card>
+    </el-card>
   </div>
 </template>
 

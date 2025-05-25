@@ -11,7 +11,7 @@ const handleApiError = (error, defaultMessage) => {
 export async function getGatewayListApi() {
   try {
     const res = await request({
-      url: "/api/gateway",
+      url: "/api/gateway/list",
       method: "get",
     });
     if (res.code === 200) {
@@ -24,10 +24,10 @@ export async function getGatewayListApi() {
 }
 
 export const updateGatewayApi = async (data) => {
-  const { ID } = data;
+  const { id } = data;
   try {
     const res = await request({
-      url: `/api/gateway/${ID}`,
+      url: `/api/gateway/${id}`,
       method: "put",
       data,
     });

@@ -305,7 +305,7 @@ const handleConnect = async (item) => {
 }
 
 .value {
-  color: #303133;
+  color: var(--el-text-color-secondary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
